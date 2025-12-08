@@ -258,11 +258,69 @@ npm run dev
 ---
 
 ### 8️⃣ 서버 실행
+
+#### 로컬에서만 실행 (localhost)
 ```bash
 php artisan serve
 ```
 
 브라우저에서 **http://localhost:8000** 접속
+
+#### 모바일에서도 접속 가능하게 실행 (권장)
+```bash
+./start.sh
+```
+
+이 스크립트는:
+- 서버를 `0.0.0.0:8000`에 바인딩 (모든 네트워크 인터페이스)
+- 로컬 IP 주소를 자동으로 감지하여 표시
+- 모바일 접속 안내 메시지 출력
+
+**출력 예시:**
+```
+📍 Server will be accessible at:
+   - Local:   http://localhost:8000
+   - Network: http://172.30.1.85:8000
+
+📱 To access from mobile device:
+   1. Connect your phone to the same Wi-Fi network
+   2. Open browser and go to: http://172.30.1.85:8000
+```
+
+---
+
+### 📱 모바일 기기에서 접속하기
+
+#### 1️⃣ 로컬 IP 주소 확인
+서버를 실행하면 `start.sh`가 자동으로 표시합니다.
+수동으로 확인하려면:
+```bash
+# macOS
+ipconfig getifaddr en0
+
+# 또는
+ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
+#### 2️⃣ `.env` 파일 수정
+```env
+APP_URL=http://172.30.1.85:8000  # 실제 로컬 IP로 변경
+```
+
+#### 3️⃣ Google OAuth 리디렉션 URI 추가
+[Google Cloud Console](https://console.cloud.google.com/)에서:
+1. **사용자 인증 정보** → OAuth 2.0 클라이언트 ID 선택
+2. **승인된 리디렉션 URI**에 추가:
+   ```
+   http://172.30.1.85:8000/auth/google/callback
+   ```
+3. 저장
+
+#### 4️⃣ 모바일에서 접속
+- 같은 Wi-Fi에 연결된 모바일 기기에서
+- 브라우저로 `http://172.30.1.85:8000` 접속
+
+> ⚠️ **주의**: IP 주소는 네트워크에 따라 바뀔 수 있습니다. Wi-Fi가 변경되면 위 단계를 다시 수행하세요.
 
 ---
 
