@@ -12,9 +12,11 @@ class RoomSeeder extends Seeder
      */
     public function run(): void
     {
-        Room::create([
-            'name' => '622호',
-            'description' => '학과 공용 스터디룸',
-        ]);
+        Room::updateOrCreate(
+            ['name' => '622호'],
+            [
+                'description' => '학과 공용 스터디룸',
+            ]
+        );
     }
 }

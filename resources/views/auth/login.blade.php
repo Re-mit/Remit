@@ -53,7 +53,31 @@
                     <span class="text-sm font-medium text-gray-700">Google 계정으로 로그인</span>
                 </a>
 
-                <!-- Info Message (if exists) -->
+                <!-- Success Message -->
+                @if(session('success'))
+                    <div class="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                        <div class="flex">
+                            <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="ml-3 text-sm text-green-700">{{ session('success') }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Error Message -->
+                @if(session('error'))
+                    <div class="mt-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+                        <div class="flex">
+                            <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="ml-3 text-sm text-red-700">{{ session('error') }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Info Message -->
                 @if(session('info'))
                     <div class="mt-4 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
                         <div class="flex">
