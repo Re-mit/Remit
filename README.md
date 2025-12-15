@@ -195,7 +195,7 @@ php artisan key:generate
 mysql -u root -p
 ```
 
-MySQL 쉘에서:
+MySQL 쉘에서
 ```sql
 CREATE DATABASE remit CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
