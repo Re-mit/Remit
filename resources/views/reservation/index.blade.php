@@ -78,11 +78,11 @@
                         @click="toggleTimeSlot(slot)"
                         class="py-3 px-2 rounded-xl text-sm font-medium transition-all border-2"
                         :class="{
-                            'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': slot.isReserved,
-                            'bg-indigo-500 text-white border-indigo-500': isTimeSelected(slot.time) && !slot.isReserved,
-                            'bg-white text-gray-700 border-gray-200 hover:border-indigo-300': !isTimeSelected(slot.time) && !slot.isReserved
+                            'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': slot.isReserved || slot.isPast,
+                            'bg-indigo-500 text-white border-indigo-500': isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast,
+                            'bg-white text-gray-700 border-gray-200 hover:border-indigo-300': !isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast
                         }"
-                        :disabled="slot.isReserved"
+                        :disabled="slot.isReserved || slot.isPast"
                     >
                         <span x-text="slot.time"></span>
                     </button>
@@ -210,11 +210,15 @@ function reservationApp() {
         get timeSlots() {
             const slots = [];
             const selectedDateStr = this.formatDate(this.selectedDate);
+            const today = new Date();
+            const isToday = this.formatDate(this.selectedDate) === this.formatDate(today);
+            const currentHour = today.getHours();
             
             for (let hour = 9; hour <= 21; hour++) {
                 const time = `${hour.toString().padStart(2, '0')}:00`;
                 const isReserved = this.isTimeReserved(selectedDateStr, time);
-                slots.push({ time, isReserved });
+                const isPast = isToday && hour <= currentHour;
+                slots.push({ time, isReserved, isPast });
             }
             return slots;
         },
@@ -267,7 +271,7 @@ function reservationApp() {
         },
         
         toggleTimeSlot(slot) {
-            if (slot.isReserved) return;
+            if (slot.isReserved || slot.isPast) return;
             
             const index = this.selectedTimes.indexOf(slot.time);
             if (index > -1) {
