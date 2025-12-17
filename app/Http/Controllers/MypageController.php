@@ -14,7 +14,16 @@ class MypageController extends Controller
      */
     public function index()
     {
-        return view('mypage.index');
+        // 임시 사용자로 조회 (Google OAuth 전까지)
+        $user = User::where('email', 'test@example.com')->first();
+        
+        // 읽지 않은 알림 수 가져오기
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+        
+        return view('mypage.index', compact('unreadCount'));
     }
 
     /**
