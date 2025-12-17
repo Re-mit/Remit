@@ -52,8 +52,12 @@
                 >
                     <span x-text="day.dayNum || ''"></span>
                     <!-- Reservation indicator dot -->
-                    <span x-show="day.date && hasReservation(day.date) && !isSelected(day.date)" 
+                    <!-- 과거 날짜: 검은색 점, 미래/오늘 날짜: 파란색 점 -->
+                    <span x-show="day.date && hasReservation(day.date) && !isSelected(day.date) && isPastDate(day.date)" 
                           class="absolute bottom-1 w-1 h-1 bg-gray-900 rounded-full"></span>
+                    <span x-show="day.date && hasReservation(day.date) && !isSelected(day.date) && !isPastDate(day.date)" 
+                          class="absolute bottom-1 w-1 h-1 bg-blue-500 rounded-full"></span>
+                    <!-- 선택된 날짜는 흰색 점 -->
                     <span x-show="day.date && hasReservation(day.date) && isSelected(day.date)" 
                           class="absolute bottom-1 w-1 h-1 bg-white rounded-full"></span>
                 </button>
@@ -76,18 +80,21 @@
 
         <template x-if="filteredReservations.length > 0">
             <div class="space-y-4">
+                
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="text-lg font-semibold text-gray-900" x-text="reservation.room_name"></span>
+                <p class="font-semibold">가천관 622호</p>
+            </div>
                 <template x-for="reservation in filteredReservations" :key="reservation.id">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <a :href="`/reservation/${reservation.id}/detail`" class="block p-4">
-                            <!-- Room and Status -->
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span class="text-lg font-semibold text-gray-900" x-text="reservation.room_name"></span>
-                                </div>
+                            <!-- Status -->
+                            <div class="flex items-center justify-start">
+                                <div class="h-6 w-1 bg-gray-700 rounded-full mr-2"></div>
                                 <div class="flex items-center">
                                     <span class="text-sm text-gray-600 mr-3" x-text="reservation.time"></span>
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold" 
@@ -213,6 +220,14 @@ function reservationCalendarApp() {
         hasReservation(date) {
             const dateStr = this.formatDate(date);
             return this.reservations.some(r => r.date === dateStr);
+        },
+        
+        isPastDate(date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const compareDate = new Date(date);
+            compareDate.setHours(0, 0, 0, 0);
+            return compareDate < today;
         },
         
         formatDate(date) {
