@@ -29,7 +29,7 @@
                     @foreach($reservations as $reservation)
                         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                             <button 
-                                @click="showKeycode({{ $reservation->id }}, '{{ $reservation->key_code }}', '{{ $reservation->start_at->toIso8601String() }}')"
+                                @click="showKeycode({{ $reservation->id }}, '{{ $reservation->key_code }}', {{ $reservation->is_keycode_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->keycode_disclosure_time_formatted) }})"
                                 class="w-full p-4 text-left">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
@@ -86,7 +86,7 @@
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">열쇠함 이용 안내</h3>
                     <ul class="space-y-2 text-sm text-gray-700">
                         <li>• 열쇠함 비밀번호는 예약 시간 10분 전부터 확인 가능합니다.</li>
-                        <li>• 열쇠함은 가천관 6층 622호 문문에 위치해 있습니다.</li>
+                        <li>• 열쇠함은 가천관 6층 622호 문에 위치해 있습니다.</li>
                         <li>• 사용 후 반드시 원래 자리에 열쇠를 반납해 주세요.</li>
                     </ul>
                 </div>
@@ -157,24 +157,20 @@ function keycodeApp() {
         isDisclosed: false,
         disclosureTime: '',
 
-        showKeycode(reservationId, code, startAt) {
+        showKeycode(reservationId, code, isDisclosed, disclosureTimeData) {
             this.keycode = code;
-            this.startAt = new Date(startAt);
-            const now = new Date();
-            const tenMinutesBefore = new Date(this.startAt.getTime() - 10 * 60 * 1000);
+            this.isDisclosed = isDisclosed;
             
-            this.isDisclosed = now >= tenMinutesBefore;
-            
-            if (!this.isDisclosed) {
-                const disclosureDate = new Date(tenMinutesBefore);
-                const month = disclosureDate.getMonth() + 1;
-                const day = disclosureDate.getDate();
-                const hour = disclosureDate.getHours();
-                const minute = disclosureDate.getMinutes();
+            if (!this.isDisclosed && disclosureTimeData) {
+                // 서버에서 전달받은 한국 시간 데이터 그대로 사용
+                const hour = parseInt(disclosureTimeData.hour);
+                const minute = parseInt(disclosureTimeData.minute);
                 const ampm = hour >= 12 ? '오후' : '오전';
                 const displayHour = hour % 12 || 12;
                 
-                this.disclosureTime = `${month}월 ${day}일 ${ampm} ${displayHour}:${minute.toString().padStart(2, '0')}에 공개`;
+                this.disclosureTime = `${disclosureTimeData.month}월 ${disclosureTimeData.day}일 ${ampm} ${displayHour}:${minute.toString().padStart(2, '0')}에 공개`;
+            } else {
+                this.disclosureTime = '';
             }
             
             this.showModal = true;
