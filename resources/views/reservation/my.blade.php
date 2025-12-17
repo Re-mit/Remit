@@ -7,9 +7,18 @@
     <!-- Header -->
     <div class="bg-white sticky top-0 z-20 border-b shadow-sm">
         <div class="flex items-center justify-between px-5 py-4">
-            <div class="w-[26px]"></div>
+            <div class="w-[90px]"></div>
             <h1 class="text-xl font-bold text-gray-900">예약 내역</h1>
-            <a href="{{ route('notification.index') }}" class="relative">
+            <div class="w-[90px] flex items-center justify-end gap-2">
+                @php
+                    $isAdmin = \Illuminate\Support\Facades\Auth::check()
+                        && config('admin.email')
+                        && \Illuminate\Support\Facades\Auth::user()->email === config('admin.email');
+                @endphp
+                @if($isAdmin)
+                    <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-gray-700">관리자</a>
+                @endif
+                <a href="{{ route('notification.index') }}" class="relative">
             <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <rect width="26" height="26" fill="url(#pattern0_58_543)"/>
             <defs>
@@ -24,6 +33,7 @@
             <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
             @endif
             </a>
+            </div>
         </div>
     </div>
 
@@ -62,7 +72,10 @@
                     :class="{
                         'bg-blue-500 text-white font-bold': day.date && isSelected(day.date),
                         'text-gray-300 cursor-default': !day.date,
-                        'text-gray-900 hover:bg-gray-100': day.date && !isSelected(day.date),
+                        'hover:bg-gray-100': day.date && !isSelected(day.date),
+                        'text-red-500': day.date && !isSelected(day.date) && (isSunday(day.date) || isHoliday(day.date)),
+                        'text-blue-500': day.date && !isSelected(day.date) && isSaturday(day.date) && !isHoliday(day.date),
+                        'text-gray-900': day.date && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date) && !isHoliday(day.date),
                     }"
                     :disabled="!day.date"
                 >
@@ -131,6 +144,7 @@
 function reservationCalendarApp() {
     // 예약 데이터 (서버에서 전달)
     const allReservations = @json($reservationsData);
+    const holidaySet = new Set(@json($holidayDates ?? []));
 
     // 초기 선택 날짜: 예약이 있는 날짜 중 가장 최근 날짜, 없으면 오늘
     const getInitialDate = () => {
@@ -171,6 +185,7 @@ function reservationCalendarApp() {
         currentYear: initialYear,
         selectedDate: initialDate,
         reservations: allReservations,
+        holidaySet,
         
         get currentMonthYear() {
             return `${this.currentYear}년 ${this.currentMonth + 1}월`;
@@ -198,6 +213,18 @@ function reservationCalendarApp() {
             }
             
             return days;
+        },
+
+        isHoliday(date) {
+            return this.holidaySet.has(this.formatDate(date));
+        },
+
+        isSunday(date) {
+            return date.getDay() === 0;
+        },
+
+        isSaturday(date) {
+            return date.getDay() === 6;
         },
         
         get filteredReservations() {

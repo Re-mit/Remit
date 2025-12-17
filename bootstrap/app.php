@@ -11,7 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // 내부 사설망(172.25.128.0/21)만 접근 허용 (로컬 127.0.0.1/::1 예외)
+        $middleware->appendToGroup('web', \App\Http\Middleware\CheckInternalIp::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
