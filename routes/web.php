@@ -37,6 +37,8 @@ Route::middleware(['auth'])->group(function () {
     // 예약하기
     Route::get('/reservation', [ReservationController::class, 'index'])->name('reservation.index');
     Route::post('/reservation', [ReservationController::class, 'store'])->name('reservation.store');
+    Route::get('/reservation/{id}/confirm', [ReservationController::class, 'confirm'])->name('reservation.confirm');
+    Route::get('/reservation/{id}/detail', [ReservationController::class, 'detail'])->name('reservation.detail');
     Route::delete('/reservation/{id}', [ReservationController::class, 'destroy'])->name('reservation.destroy');
     
     // 예약조회 (내 예약)
