@@ -1,23 +1,9 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remit - 로그인</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+@extends('layouts.app')
 
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="bg-[#EFF5FF] min-h-screen flex flex-col">
+@section('title', '로그인')
+
+@section('content')
+<div class="bg-[#EFF5FF] min-h-screen flex flex-col">
     
     <!-- Mobile-First Login Container -->
     <div class="flex-1 flex items-center justify-center px-4 py-8">
@@ -123,5 +109,5 @@
         <p>&copy; {{ date('Y') }} Remit. All rights reserved.</p>
     </footer>
 
-</body>
-</html>
+</div>
+@endsection

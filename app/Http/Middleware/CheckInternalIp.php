@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\IpUtils;
 class CheckInternalIp
 {
     /**
+
      * 내부망만 서비스 접근 허용 (방법 A)
      * - 내부망: 172.25.128.0/21
      * - 예외: Google OAuth 시작/콜백 경로는 외부 IP에서도 허용
