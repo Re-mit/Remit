@@ -63,7 +63,7 @@ Google 계정으로 간편하게 로그인하여 회의실을 예약하고 관�
 | 기술 | 용도 |
 |------|------|
 | Blade | Laravel 템플릿 엔진 |
-| Vite | 프론트엔드 빌드 도구 |
+| Webpack (Laravel Mix) | 프론트엔드 빌드 도구 |
 | Vanilla CSS | 스타일링 |
 | Vanilla JS | 클라이언트 스크립트 |
 
@@ -145,7 +145,7 @@ Remit/
 ├── .gitignore
 ├── composer.json                               # PHP 의존성
 ├── package.json                                # JS 의존성
-├── vite.config.js                              # Vite 설정
+├── webpack.mix.js                              # Webpack(Mix) 설정
 └── README.md
 ```
 
