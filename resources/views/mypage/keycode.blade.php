@@ -29,15 +29,15 @@
                     @foreach($reservations as $reservation)
                         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                             <button 
-                                @click="showKeycode({{ $reservation->id }}, '{{ $reservation->key_code }}', {{ $reservation->is_keycode_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->keycode_disclosure_time_formatted) }})"
+                                @click="showKeycode({{ $reservation->id }}, '{{ $reservation->key_code }}', {{ $reservation->is_keycode_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->keycode_disclosure_time_formatted) }}, {{ ($reservation->is_past_started ?? false) ? 'true' : 'false' }})"
                                 class="w-full p-4 text-left">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
                                         <div class="flex-shrink-0 mr-4">
-                                            @if($reservation->start_at->isPast())
-                                                <!-- 진행 중 또는 완료 -->
-                                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                                    <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            @if(($reservation->is_past_started ?? false))
+                                                <!-- 지난 내역 -->
+                                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                 </div>
@@ -58,15 +58,9 @@
                                         </div>
                                     </div>
                                     <div class="ml-4">
-                                        @if($reservation->start_at->isPast())
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                                진행 중
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                                예약됨
-                                            </span>
-                                        @endif
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $reservation->badge_class ?? 'bg-blue-500 text-white' }}">
+                                            {{ $reservation->badge_text ?? '예약됨' }}
+                                        </span>
                                     </div>
                                 </div>
                             </button>
@@ -155,10 +149,21 @@ function keycodeApp() {
         keycode: '',
         startAt: null,
         isDisclosed: false,
+        isPast: false,
         disclosureTime: '',
 
-        showKeycode(reservationId, code, isDisclosed, disclosureTimeData) {
+        showKeycode(reservationId, code, isDisclosed, disclosureTimeData, isPast) {
             this.keycode = code;
+            this.isPast = isPast === true;
+
+            // 시작 시간이 지난 내역은 비밀번호 미노출 (내역만 표시)
+            if (this.isPast) {
+                this.isDisclosed = false;
+                this.disclosureTime = '지난 내역입니다. (비밀번호 확인 불가)';
+                this.showModal = true;
+                return;
+            }
+
             this.isDisclosed = isDisclosed;
             
             if (!this.isDisclosed && disclosureTimeData) {
