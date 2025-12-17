@@ -24,7 +24,14 @@ class ReservationController extends Controller
             ->orderBy('start_at')
             ->get();
 
-        return view('reservation.index', compact('reservations'));
+        // 읽지 않은 알림 수 가져오기
+        $user = User::where('email', 'test@example.com')->first();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        return view('reservation.index', compact('reservations', 'unreadCount'));
     }
 
     /**
@@ -160,6 +167,12 @@ class ReservationController extends Controller
         // 임시 사용자로 조회 (Google OAuth 전까지)
         $user = User::where('email', 'test@example.com')->first();
         
+        // 읽지 않은 알림 수 가져오기
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+        
         $reservations = collect();
         if ($user) {
             $reservations = $user->reservations()
@@ -181,7 +194,7 @@ class ReservationController extends Controller
             ];
         });
 
-        return view('reservation.my', compact('reservations', 'reservationsData'));
+        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount'));
     }
 
     /**

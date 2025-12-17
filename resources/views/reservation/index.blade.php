@@ -20,7 +20,9 @@
             </defs>
             </svg>
             <!-- Notification badge -->
+            @if(isset($unreadCount) && $unreadCount > 0)
             <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
+            @endif
             </a>
         </div>
     </div>
