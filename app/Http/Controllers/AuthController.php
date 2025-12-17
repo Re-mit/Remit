@@ -36,12 +36,30 @@ class AuthController extends Controller
                 'name' => $googleUser->name
             ]);
             
-            // Check if user name contains the allowed filter (e.g., "철학과")
-            $allowedFilter = env('ALLOWED_USER_FILTER');
-            if ($allowedFilter && !str_contains($googleUser->name, $allowedFilter)) {
-                \Log::warning('User filtered out', ['name' => $googleUser->name, 'filter' => $allowedFilter]);
+            // 1. 가천 이메일 검증
+            if (!str_ends_with($googleUser->email, '@gachon.ac.kr')) {
+                \Log::warning('Non-Gachon email attempt', ['email' => $googleUser->email]);
                 return redirect()->route('login')
-                    ->with('error', '접근 권한이 없습니다. 허용된 사용자만 이용 가능합니다. (필터: ' . $allowedFilter . ')');
+                    ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 로그인할 수 있습니다.');
+            }
+            
+            // 2. 허용된 학과 검증 (이름 뒤가 /금융수학과 또는 /금융·빅데이터학부)
+            $allowedDepartments = ['/금융수학과', '/금융·빅데이터학부'];
+            $isAllowedDepartment = false;
+            foreach ($allowedDepartments as $department) {
+                if (str_ends_with($googleUser->name, $department)) {
+                    $isAllowedDepartment = true;
+                    break;
+                }
+            }
+            
+            if (!$isAllowedDepartment) {
+                \Log::warning('User filtered out - not allowed department', [
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email
+                ]);
+                return redirect()->route('login')
+                    ->with('error', '해당 학과 학생만 이용할 수 있습니다. (금융수학과 또는 금융·빅데이터학부)');
             }
             
             // Find or create user

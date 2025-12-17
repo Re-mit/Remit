@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
+use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
@@ -24,7 +26,14 @@ class ReservationController extends Controller
             ->orderBy('start_at')
             ->get();
 
-        return view('reservation.index', compact('reservations'));
+        // 읽지 않은 알림 수 가져오기
+        $user = Auth::user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        return view('reservation.index', compact('reservations', 'unreadCount'));
     }
 
     /**
@@ -56,6 +65,39 @@ class ReservationController extends Controller
         try {
             DB::beginTransaction();
 
+            // 로그인 사용자 기준으로 예약 저장
+            $user = Auth::user();
+            if (!$user) {
+                DB::rollBack();
+                return redirect()->route('login')->with('error', '로그인이 필요합니다.');
+            }
+
+            // 과거 임시 계정 예약(test@example.com)이 있으면 로그인 계정으로 자동 이관
+            LegacyReservationMigrator::migrateFromTestUserIfNeeded($user);
+
+            // 해당 날짜에 사용자가 이미 예약한 예약들의 총 시간 계산
+            $reservationDate = $startAt->format('Y-m-d');
+            $existingReservations = $user->reservations()
+                ->where('status', 'confirmed')
+                ->whereDate('start_at', $reservationDate)
+                ->get();
+
+            $totalHours = 0;
+            foreach ($existingReservations as $existingReservation) {
+                $existingStart = new \DateTime($existingReservation->start_at);
+                $existingEnd = new \DateTime($existingReservation->end_at);
+                $existingDuration = ($existingEnd->getTimestamp() - $existingStart->getTimestamp()) / 3600;
+                $totalHours += $existingDuration;
+            }
+
+            // 새로 예약하려는 시간 추가
+            $totalHours += $duration;
+
+            if ($totalHours > 4) {
+                DB::rollBack();
+                return back()->withErrors(['start_at' => '하루에 최대 4시간까지만 예약할 수 있습니다. (현재 예약: ' . ($totalHours - $duration) . '시간)']);
+            }
+
             // 기본 방 (622호) 가져오기
             $room = Room::where('name', '622호')->firstOrFail();
 
@@ -84,16 +126,6 @@ class ReservationController extends Controller
                 'key_code' => $this->generateKeyCode(),
                 'status' => 'confirmed',
             ]);
-
-            // 임시 사용자 생성 (Google OAuth 전까지)
-            $user = User::firstOrCreate(
-                ['email' => 'test@example.com'],
-                [
-                    'name' => '테스트 사용자',
-                    'password' => null,
-                    'role' => 'user',
-                ]
-            );
 
             // 예약-사용자 연결 (대표자)
             $reservation->users()->attach($user->id, ['is_representative' => true]);
@@ -134,9 +166,18 @@ class ReservationController extends Controller
      */
     public function my()
     {
-        // 임시 사용자로 조회 (Google OAuth 전까지)
-        $user = User::where('email', 'test@example.com')->first();
+        $user = Auth::user();
+        if ($user) {
+            // 과거 임시 계정 예약(test@example.com)이 있으면 로그인 계정으로 자동 이관
+            LegacyReservationMigrator::migrateFromTestUserIfNeeded($user);
+        }
         
+        // 읽지 않은 알림 수 가져오기
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
         $reservations = collect();
         if ($user) {
             $reservations = $user->reservations()
@@ -158,7 +199,7 @@ class ReservationController extends Controller
             ];
         });
 
-        return view('reservation.my', compact('reservations', 'reservationsData'));
+        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount'));
     }
 
     /**

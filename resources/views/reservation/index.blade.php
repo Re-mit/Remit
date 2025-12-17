@@ -7,9 +7,18 @@
     <!-- Header -->
     <div class="bg-white sticky top-0 z-20 border-b shadow-sm">
         <div class="flex items-center justify-between px-5 py-4">
-            <div class="w-[26px]"></div>
+            <div class="w-[90px]"></div>
             <h1 class="text-xl font-bold text-gray-900">예약</h1>
-            <a href="{{ route('notification.index') }}" class="relative">
+            <div class="w-[90px] flex items-center justify-end gap-2">
+                @php
+                    $isAdmin = \Illuminate\Support\Facades\Auth::check()
+                        && config('admin.email')
+                        && \Illuminate\Support\Facades\Auth::user()->email === config('admin.email');
+                @endphp
+                @if($isAdmin)
+                    <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-gray-700">관리자</a>
+                @endif
+                <a href="{{ route('notification.index') }}" class="relative">
             <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <rect width="26" height="26" fill="url(#pattern0_58_543)"/>
             <defs>
@@ -20,8 +29,11 @@
             </defs>
             </svg>
             <!-- Notification badge -->
+            @if(isset($unreadCount) && $unreadCount > 0)
             <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
+            @endif
             </a>
+            </div>
         </div>
     </div>
 
@@ -45,7 +57,9 @@
         <!-- Day Headers -->
         <div class="grid grid-cols-7 gap-1 mb-2">
             <template x-for="day in ['일', '월', '화', '수', '목', '금', '토']" :key="day">
-                <div class="text-center text-xs font-medium text-gray-500 py-2" x-text="day"></div>
+                <div class="text-center text-xs font-medium py-2"
+                     :class="day === '일' ? 'text-red-500' : day === '토' ? 'text-blue-500' : 'text-gray-500'"
+                     x-text="day"></div>
             </template>
         </div>
         
@@ -56,16 +70,19 @@
                     @click="day.date && selectDate(day.date)"
                     class="aspect-square flex items-center justify-center rounded-full text-sm transition-all relative"
                     :class="{
-                        'bg-indigo-500 text-white font-bold': day.date && isSelected(day.date),
+                        'bg-blue-500 text-white font-bold': day.date && isSelected(day.date),
                         'text-gray-300 cursor-default': !day.date || !isSelectable(day.date),
-                        'text-gray-900 hover:bg-gray-100': day.date && isSelectable(day.date) && !isSelected(day.date),
+                        'hover:bg-gray-100': day.date && isSelectable(day.date) && !isSelected(day.date),
+                   'text-red-500': day.date && isSelectable(day.date) && !isSelected(day.date) && isSunday(day.date),
+                   'text-blue-500': day.date && isSelectable(day.date) && !isSelected(day.date) && isSaturday(day.date),
+                   'text-gray-900': day.date && isSelectable(day.date) && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date),
                         'font-semibold': day.isToday
                     }"
                     :disabled="!day.date || !isSelectable(day.date)"
                 >
                     <span x-text="day.dayNum || ''"></span>
                     <!-- Today indicator -->
-                    <span x-show="day.isToday && !isSelected(day.date)" class="absolute bottom-1 w-1 h-1 bg-indigo-500 rounded-full"></span>
+                    <span x-show="day.isToday && !isSelected(day.date)" class="absolute bottom-1 w-1 h-1 bg-blue-500 rounded-full"></span>
                 </button>
             </template>
         </div>
@@ -98,8 +115,8 @@
                         class="py-3 px-2 rounded-xl text-sm font-medium transition-all border-2"
                         :class="{
                             'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': slot.isReserved || slot.isPast,
-                            'bg-indigo-500 text-white border-indigo-500': isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast,
-                            'bg-white text-gray-700 border-gray-200 hover:border-indigo-300': !isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast
+                            'bg-blue-500 text-white border-blue-500': isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast,
+                            'bg-white text-gray-700 border-gray-200 hover:border-blue-300': !isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast
                         }"
                         :disabled="slot.isReserved || slot.isPast"
                     >
@@ -112,19 +129,19 @@
 
     <!-- Selected Time Summary -->
     <div class="px-4" x-show="selectedTimes.length > 0" x-transition>
-        <div class="bg-indigo-50 rounded-2xl p-4 mb-4">
+        <div class="bg-blue-50 rounded-2xl p-4 mb-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm text-indigo-600 font-medium">선택한 시간</p>
-                    <p class="text-lg font-bold text-indigo-900" x-text="getSelectedTimeRange()"></p>
+                    <p class="text-sm text-blue-600 font-medium">선택한 시간</p>
+                    <p class="text-lg font-bold text-blue-900" x-text="getSelectedTimeRange()"></p>
                 </div>
-                <button @click="clearSelection()" class="text-indigo-500 text-sm font-medium">초기화</button>
+                <button @click="clearSelection()" class="text-blue-500 text-sm font-medium">초기화</button>
             </div>
         </div>
     </div>
 
     <!-- Reserve Button -->
-    <div class="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4">
+    <div class="fixed bottom-0 left-0 right-0 px-4 pb-20 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4">
         <form method="POST" action="{{ route('reservation.store') }}" x-ref="reservationForm">
             @csrf
             <input type="hidden" name="start_at" :value="getStartDateTime()">
@@ -134,7 +151,7 @@
                 type="submit"
                 class="w-full py-4 rounded-xl font-semibold text-lg transition-all shadow-lg"
                 :class="{
-                    'bg-indigo-500 text-white hover:bg-indigo-600': selectedTimes.length > 0,
+                    'bg-blue-500 text-white hover:bg-blue-600': selectedTimes.length > 0,
                     'bg-gray-200 text-gray-400 cursor-not-allowed': selectedTimes.length === 0
                 }"
                 :disabled="selectedTimes.length === 0"
@@ -224,6 +241,14 @@ function reservationApp() {
             }
             
             return days;
+        },
+
+        isSunday(date) {
+            return date.getDay() === 0;
+        },
+
+        isSaturday(date) {
+            return date.getDay() === 6;
         },
         
         get timeSlots() {
