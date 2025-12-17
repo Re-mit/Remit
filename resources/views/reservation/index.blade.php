@@ -126,7 +126,7 @@
     </div>
 
     <!-- Reserve Button -->
-    <div class="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4">
+    <div class="fixed bottom-0 left-0 right-0 px-4 pb-20 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4">
         <form method="POST" action="{{ route('reservation.store') }}" x-ref="reservationForm">
             @csrf
             <input type="hidden" name="start_at" :value="getStartDateTime()">
