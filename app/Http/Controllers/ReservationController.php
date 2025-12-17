@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
-use App\Support\KoreanHolidays;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,10 +33,7 @@ class ReservationController extends Controller
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
 
-        $now = now('Asia/Seoul');
-        $holidayDates = KoreanHolidays::dates([$now->year, $now->copy()->addYear()->year]);
-
-        return view('reservation.index', compact('reservations', 'unreadCount', 'holidayDates'));
+        return view('reservation.index', compact('reservations', 'unreadCount'));
     }
 
     /**
@@ -182,13 +178,6 @@ class ReservationController extends Controller
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
 
-        $now = now('Asia/Seoul');
-        $years = [];
-        for ($y = $now->year - 2; $y <= $now->year + 2; $y++) {
-            $years[] = $y;
-        }
-        $holidayDates = KoreanHolidays::dates($years);
-        
         $reservations = collect();
         if ($user) {
             $reservations = $user->reservations()
@@ -210,7 +199,7 @@ class ReservationController extends Controller
             ];
         });
 
-        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount', 'holidayDates'));
+        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount'));
     }
 
     /**

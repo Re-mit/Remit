@@ -73,9 +73,9 @@
                         'bg-blue-500 text-white font-bold': day.date && isSelected(day.date),
                         'text-gray-300 cursor-default': !day.date || !isSelectable(day.date),
                         'hover:bg-gray-100': day.date && isSelectable(day.date) && !isSelected(day.date),
-                        'text-red-500': day.date && isSelectable(day.date) && !isSelected(day.date) && (isSunday(day.date) || isHoliday(day.date)),
-                        'text-blue-500': day.date && isSelectable(day.date) && !isSelected(day.date) && isSaturday(day.date) && !isHoliday(day.date),
-                        'text-gray-900': day.date && isSelectable(day.date) && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date) && !isHoliday(day.date),
+                   'text-red-500': day.date && isSelectable(day.date) && !isSelected(day.date) && isSunday(day.date),
+                   'text-blue-500': day.date && isSelectable(day.date) && !isSelected(day.date) && isSaturday(day.date),
+                   'text-gray-900': day.date && isSelectable(day.date) && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date),
                         'font-semibold': day.isToday
                     }"
                     :disabled="!day.date || !isSelectable(day.date)"
@@ -207,15 +207,11 @@ function reservationApp() {
         ];
     }));
 
-    // 공휴일 날짜 목록 (서버에서 전달) e.g. ["2025-01-01", ...]
-    const holidaySet = new Set(@json($holidayDates ?? []));
-
     return {
         currentMonth: new Date().getMonth(),
         currentYear: new Date().getFullYear(),
         selectedDate: new Date(),
         selectedTimes: [],
-        holidaySet,
         
         get currentMonthYear() {
             return `${this.currentYear}년 ${this.currentMonth + 1}월`;
@@ -245,10 +241,6 @@ function reservationApp() {
             }
             
             return days;
-        },
-
-        isHoliday(date) {
-            return this.holidaySet.has(this.formatDate(date));
         },
 
         isSunday(date) {
