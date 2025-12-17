@@ -20,16 +20,24 @@
     </style>
     @stack('styles')
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased">
+<body class="bg-gray-100 text-gray-800 antialiased">
 
-    <!-- Page Content -->
-    <main>
-        @yield('content')
-    </main>
+    @php
+        $showBottomNav = \Illuminate\Support\Facades\Auth::check();
+    @endphp
+
+    <!-- App Container (Mobile-first max width) -->
+    <div class="mx-auto w-full max-w-[430px] min-h-screen bg-gray-50 relative shadow-sm">
+        <!-- Page Content -->
+        <main class="{{ $showBottomNav ? 'pb-16' : '' }}">
+            @yield('content')
+        </main>
+    </div>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div class="flex justify-around items-center h-16">
+    @if($showBottomNav)
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-gray-200 z-50">
+        <div class="flex justify-around items-center h-16 w-full">
             <!-- 예약하기 -->
             <a href="{{ route('reservation.index') }}" 
                class="flex flex-col items-center justify-center flex-1 py-2 {{ request()->routeIs('reservation.index') ? 'text-indigo-600' : 'text-gray-600' }}">
@@ -60,9 +68,7 @@
             </a>
         </div>
     </nav>
-
-    <!-- Add padding to bottom for fixed nav -->
-    <div class="h-16"></div>
+    @endif
 
     @stack('scripts')
 </body>
