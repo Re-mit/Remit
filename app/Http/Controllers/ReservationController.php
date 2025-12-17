@@ -56,6 +56,39 @@ class ReservationController extends Controller
         try {
             DB::beginTransaction();
 
+            // 임시 사용자 가져오기 (Google OAuth 전까지)
+            $user = User::firstOrCreate(
+                ['email' => 'test@example.com'],
+                [
+                    'name' => '테스트 사용자',
+                    'password' => null,
+                    'role' => 'user',
+                ]
+            );
+
+            // 해당 날짜에 사용자가 이미 예약한 예약들의 총 시간 계산
+            $reservationDate = $startAt->format('Y-m-d');
+            $existingReservations = $user->reservations()
+                ->where('status', 'confirmed')
+                ->whereDate('start_at', $reservationDate)
+                ->get();
+
+            $totalHours = 0;
+            foreach ($existingReservations as $existingReservation) {
+                $existingStart = new \DateTime($existingReservation->start_at);
+                $existingEnd = new \DateTime($existingReservation->end_at);
+                $existingDuration = ($existingEnd->getTimestamp() - $existingStart->getTimestamp()) / 3600;
+                $totalHours += $existingDuration;
+            }
+
+            // 새로 예약하려는 시간 추가
+            $totalHours += $duration;
+
+            if ($totalHours > 4) {
+                DB::rollBack();
+                return back()->withErrors(['start_at' => '하루에 최대 4시간까지만 예약할 수 있습니다. (현재 예약: ' . ($totalHours - $duration) . '시간)']);
+            }
+
             // 기본 방 (622호) 가져오기
             $room = Room::where('name', '622호')->firstOrFail();
 
@@ -84,16 +117,6 @@ class ReservationController extends Controller
                 'key_code' => $this->generateKeyCode(),
                 'status' => 'confirmed',
             ]);
-
-            // 임시 사용자 생성 (Google OAuth 전까지)
-            $user = User::firstOrCreate(
-                ['email' => 'test@example.com'],
-                [
-                    'name' => '테스트 사용자',
-                    'password' => null,
-                    'role' => 'user',
-                ]
-            );
 
             // 예약-사용자 연결 (대표자)
             $reservation->users()->attach($user->id, ['is_representative' => true]);
