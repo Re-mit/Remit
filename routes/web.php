@@ -46,9 +46,11 @@ Route::middleware(['auth'])->group(function () {
     
     // 알림
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notification.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notification.read');
     
     // 마이페이지
     Route::get('/mypage', [MypageController::class, 'index'])->name('mypage.index');
+    Route::get('/mypage/keycode', [MypageController::class, 'keycode'])->name('mypage.keycode');
 });
 
 
