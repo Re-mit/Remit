@@ -1,0 +1,63 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: remit_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./storage:/var/www/html/storage
+      - vendor_data:/var/www/html/vendor
+      - node_modules_data:/var/www/html/node_modules
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-remit}
+      - DB_USERNAME=${DB_USERNAME:-remit_user}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+    depends_on:
+      - mysql
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    networks:
+      - remit_network
+
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: remit_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-remit}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_USER: ${DB_USERNAME:-remit_user}
+    ports:
+      - "${DB_EXTERNAL_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - remit_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  remit_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  vendor_data:
+  node_modules_data:
+
