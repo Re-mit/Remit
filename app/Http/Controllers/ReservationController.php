@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
+use App\Support\KoreanHolidays;
+use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
@@ -25,13 +28,16 @@ class ReservationController extends Controller
             ->get();
 
         // 읽지 않은 알림 수 가져오기
-        $user = User::where('email', 'test@example.com')->first();
+        $user = Auth::user();
         $unreadCount = 0;
         if ($user) {
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
 
-        return view('reservation.index', compact('reservations', 'unreadCount'));
+        $now = now('Asia/Seoul');
+        $holidayDates = KoreanHolidays::dates([$now->year, $now->copy()->addYear()->year]);
+
+        return view('reservation.index', compact('reservations', 'unreadCount', 'holidayDates'));
     }
 
     /**
@@ -63,15 +69,15 @@ class ReservationController extends Controller
         try {
             DB::beginTransaction();
 
-            // 임시 사용자 가져오기 (Google OAuth 전까지)
-            $user = User::firstOrCreate(
-                ['email' => 'test@example.com'],
-                [
-                    'name' => '테스트 사용자',
-                    'password' => null,
-                    'role' => 'user',
-                ]
-            );
+            // 로그인 사용자 기준으로 예약 저장
+            $user = Auth::user();
+            if (!$user) {
+                DB::rollBack();
+                return redirect()->route('login')->with('error', '로그인이 필요합니다.');
+            }
+
+            // 과거 임시 계정 예약(test@example.com)이 있으면 로그인 계정으로 자동 이관
+            LegacyReservationMigrator::migrateFromTestUserIfNeeded($user);
 
             // 해당 날짜에 사용자가 이미 예약한 예약들의 총 시간 계산
             $reservationDate = $startAt->format('Y-m-d');
@@ -164,14 +170,24 @@ class ReservationController extends Controller
      */
     public function my()
     {
-        // 임시 사용자로 조회 (Google OAuth 전까지)
-        $user = User::where('email', 'test@example.com')->first();
+        $user = Auth::user();
+        if ($user) {
+            // 과거 임시 계정 예약(test@example.com)이 있으면 로그인 계정으로 자동 이관
+            LegacyReservationMigrator::migrateFromTestUserIfNeeded($user);
+        }
         
         // 읽지 않은 알림 수 가져오기
         $unreadCount = 0;
         if ($user) {
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
+
+        $now = now('Asia/Seoul');
+        $years = [];
+        for ($y = $now->year - 2; $y <= $now->year + 2; $y++) {
+            $years[] = $y;
+        }
+        $holidayDates = KoreanHolidays::dates($years);
         
         $reservations = collect();
         if ($user) {
@@ -194,7 +210,7 @@ class ReservationController extends Controller
             ];
         });
 
-        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount'));
+        return view('reservation.my', compact('reservations', 'reservationsData', 'unreadCount', 'holidayDates'));
     }
 
     /**
