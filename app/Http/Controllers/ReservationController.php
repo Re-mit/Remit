@@ -103,12 +103,30 @@ class ReservationController extends Controller
 
             DB::commit();
 
-            return back()->with('success', '예약이 완료되었습니다! 열쇠함 비밀번호: ' . $reservation->key_code);
+            return redirect()->route('reservation.confirm', $reservation->id);
             
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => '예약 중 오류가 발생했습니다: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Show reservation confirmation page
+     */
+    public function confirm($id)
+    {
+        $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
+        return view('reservation.confirm', compact('reservation'));
+    }
+
+    /**
+     * Show reservation detail page
+     */
+    public function detail($id)
+    {
+        $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
+        return view('reservation.detail', compact('reservation'));
     }
 
     /**
@@ -127,7 +145,20 @@ class ReservationController extends Controller
                 ->get();
         }
 
-        return view('reservation.my', compact('reservations'));
+        // JavaScript에서 사용할 데이터 형식으로 변환
+        $reservationsData = $reservations->map(function($r) {
+            return [
+                'id' => $r->id,
+                'date' => $r->start_at->format('Y-m-d'),
+                'time' => ($r->start_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->start_at->format('g:i') . ' - ' . ($r->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->end_at->format('g:i'),
+                'room_name' => $r->room->name,
+                'status' => $r->status,
+                'status_text' => $r->status === 'confirmed' ? '예약완료' : '취소됨',
+                'start_at' => $r->start_at->toIso8601String(),
+            ];
+        });
+
+        return view('reservation.my', compact('reservations', 'reservationsData'));
     }
 
     /**
