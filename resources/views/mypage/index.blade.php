@@ -7,9 +7,18 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center justify-between">
-            <div class="w-[26px]"></div>
+            <div class="w-[90px]"></div>
             <h1 class="text-xl font-bold text-gray-900">마이페이지</h1>
-            <a href="{{ route('notification.index') }}" class="relative">
+            <div class="w-[90px] flex items-center justify-end gap-2">
+                @php
+                    $isAdmin = \Illuminate\Support\Facades\Auth::check()
+                        && config('admin.email')
+                        && \Illuminate\Support\Facades\Auth::user()->email === config('admin.email');
+                @endphp
+                @if($isAdmin)
+                    <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-gray-700">관리자</a>
+                @endif
+                <a href="{{ route('notification.index') }}" class="relative">
             <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <rect width="26" height="26" fill="url(#pattern0_58_543)"/>
             <defs>
@@ -25,6 +34,7 @@
             <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
             @endif
             </a>
+            </div>
         </div>
     </div>
 

@@ -14,10 +14,21 @@ class NotificationController extends Controller
      */
     public function index()
     {
-        $notifications = Notification::where('user_id', Auth::id())
+        $userId = Auth::id();
+        if (!$userId) {
+            return redirect()->route('login');
+        }
+
+        // 알림 페이지에 들어오면 "확인"한 것으로 간주: 모두 읽음 처리
+        $now = now();
+        Notification::where('user_id', $userId)
+            ->whereNull('read_at')
+            ->update(['read_at' => $now]);
+
+        $notifications = Notification::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->groupBy(function($notification) {
+            ->groupBy(function ($notification) {
                 $date = $notification->created_at;
                 if ($date->isToday()) {
                     return '오늘';
