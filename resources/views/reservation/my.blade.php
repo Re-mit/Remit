@@ -73,9 +73,9 @@
                         'bg-blue-500 text-white font-bold': day.date && isSelected(day.date),
                         'text-gray-300 cursor-default': !day.date,
                         'hover:bg-gray-100': day.date && !isSelected(day.date),
-                        'text-red-500': day.date && !isSelected(day.date) && (isSunday(day.date) || isHoliday(day.date)),
-                        'text-blue-500': day.date && !isSelected(day.date) && isSaturday(day.date) && !isHoliday(day.date),
-                        'text-gray-900': day.date && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date) && !isHoliday(day.date),
+                        'text-red-500': day.date && !isSelected(day.date) && isSunday(day.date),
+                        'text-blue-500': day.date && !isSelected(day.date) && isSaturday(day.date),
+                        'text-gray-900': day.date && !isSelected(day.date) && !isSunday(day.date) && !isSaturday(day.date),
                     }"
                     :disabled="!day.date"
                 >
@@ -144,7 +144,6 @@
 function reservationCalendarApp() {
     // 예약 데이터 (서버에서 전달)
     const allReservations = @json($reservationsData);
-    const holidaySet = new Set(@json($holidayDates ?? []));
 
     // 초기 선택 날짜: 예약이 있는 날짜 중 가장 최근 날짜, 없으면 오늘
     const getInitialDate = () => {
@@ -185,7 +184,6 @@ function reservationCalendarApp() {
         currentYear: initialYear,
         selectedDate: initialDate,
         reservations: allReservations,
-        holidaySet,
         
         get currentMonthYear() {
             return `${this.currentYear}년 ${this.currentMonth + 1}월`;
@@ -213,10 +211,6 @@ function reservationCalendarApp() {
             }
             
             return days;
-        },
-
-        isHoliday(date) {
-            return this.holidaySet.has(this.formatDate(date));
         },
 
         isSunday(date) {
