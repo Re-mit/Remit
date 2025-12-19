@@ -191,6 +191,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'student_id' => ['required', 'string', 'max:20', 'regex:/^\d+$/'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:4', 'max:12', 'confirmed'],
         ]);
@@ -226,6 +227,7 @@ class AuthController extends Controller
         }
 
         $user->name = $validated['name'];
+        $user->student_id = $validated['student_id'];
         $user->password = Hash::make($validated['password']);
         $user->google_id = null; // 더 이상 사용하지 않음
         $user->role = $user->role ?: 'user';
