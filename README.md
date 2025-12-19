@@ -2,7 +2,7 @@
 
 > 학과 공용 스터디룸(622호) 예약 및 관리 시스템
 
-Google 계정으로 간편하게 로그인하여 회의실을 예약하고 관리할 수 있는 웹 애플리케이션입니다.
+이메일/비밀번호로 로그인하여 회의실을 예약하고 관리할 수 있는 웹 애플리케이션입니다.
 
 ---
 
@@ -20,9 +20,8 @@ Google 계정으로 간편하게 로그인하여 회의실을 예약하고 관�
 ## ✨ 주요 기능
 
 ### 🔐 인증
-- **Google OAuth 2.0 로그인**
-  - 별도 회원가입 없이 Google 계정으로 즉시 사용
-  - 사용자 정보(이름, 이메일, 프로필 사진) 자동 저장
+- **이메일/비밀번호 회원가입 & 로그인**
+  - `@gachon.ac.kr` 이메일만 가입/로그인 허용
 
 ### 📅 예약 관리
 - **예약 생성**
@@ -42,7 +41,6 @@ Google 계정으로 간편하게 로그인하여 회의실을 예약하고 관�
 
 ### 👤 마이페이지
 - 사용자 프로필 정보 확인
-- Google 계정 정보 표시
 
 ### 🔔 알림
 - 예약 관련 알림 수신 (예정)
@@ -57,7 +55,6 @@ Google 계정으로 간편하게 로그인하여 회의실을 예약하고 관�
 | PHP | 8.2+ | 서버사이드 언어 |
 | Laravel | 12.x | PHP 프레임워크 |
 | MySQL | 8.0+ | 관계형 데이터베이스 |
-| Laravel Socialite | 5.x | Google OAuth 인증 |
 
 ### Frontend
 | 기술 | 용도 |
@@ -83,7 +80,7 @@ Remit/
 ├── app/
 │   ├── Http/
 │   │   └── Controllers/
-│   │       ├── AuthController.php              # Google OAuth 인증
+│   │       ├── AuthController.php              # 회원가입/로그인(세션)
 │   │       ├── ReservationController.php       # 예약 CRUD
 │   │       ├── MypageController.php            # 마이페이지
 │   │       └── NotificationController.php      # 알림
@@ -98,7 +95,7 @@ Remit/
 ├── config/
 │   ├── auth.php                                # 인증 설정
 │   ├── database.php                            # DB 설정
-│   ├── services.php                            # Google OAuth 설정
+│   ├── services.php                            # 외부 서비스 설정
 │   └── ...                                     # 기타 Laravel 설정
 ├── database/
 │   ├── migrations/                             # 데이터베이스 스키마
@@ -224,24 +221,13 @@ php artisan migrate --seed
 
 ---
 
-### 6️⃣ Google OAuth 설정
+### 6️⃣ 회원가입/로그인
 
-#### Google Cloud Console 설정
-1. [Google Cloud Console](https://console.cloud.google.com/) 접속
-2. 새 프로젝트 생성 또는 기존 프로젝트 선택
-3. **API 및 서비스 → OAuth 동의 화면** 설정
-4. **사용자 인증 정보 → OAuth 2.0 클라이언트 ID** 생성
-5. **승인된 리디렉션 URI** 추가:
-   ```
-   http://localhost:8000/auth/google/callback
-   ```
+브라우저에서 아래로 접속해 계정을 생성/로그인합니다.
+- 회원가입: `/register`
+- 로그인: `/login`
 
-#### `.env` 파일에 자격증명 추가
-```env
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URL=${APP_URL}/auth/google/callback
-```
+> 참고: 과거 Google OAuth로 생성된 계정이 DB에 남아있더라도, 해당 이메일로 `/register`에서 비밀번호를 설정하면(비밀번호가 비어있는 경우) 동일 계정으로 로그인할 수 있습니다.
 
 ---
 
@@ -307,16 +293,7 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 APP_URL=http://172.30.1.85:8000  # 실제 로컬 IP로 변경
 ```
 
-#### 3️⃣ Google OAuth 리디렉션 URI 추가
-[Google Cloud Console](https://console.cloud.google.com/)에서:
-1. **사용자 인증 정보** → OAuth 2.0 클라이언트 ID 선택
-2. **승인된 리디렉션 URI**에 추가:
-   ```
-   http://172.30.1.85:8000/auth/google/callback
-   ```
-3. 저장
-
-#### 4️⃣ 모바일에서 접속
+#### 3️⃣ 모바일에서 접속
 - 같은 Wi-Fi에 연결된 모바일 기기에서
 - 브라우저로 `http://172.30.1.85:8000` 접속
 
@@ -364,13 +341,6 @@ SESSION_LIFETIME=120
 
 CACHE_STORE=database
 QUEUE_CONNECTION=database
-```
-
-#### Google OAuth 설정
-```env
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URL=${APP_URL}/auth/google/callback
 ```
 
 #### 선택적 설정
@@ -473,8 +443,7 @@ ALLOWED_USER_FILTER=
 |--------|-----|------|
 | GET | `/` | 루트 (로그인으로 리다이렉트) |
 | GET | `/login` | 로그인 페이지 |
-| GET | `/auth/google` | Google OAuth 시작 |
-| GET | `/auth/google/callback` | OAuth 콜백 |
+| GET | `/register` | 회원가입 페이지 |
 
 ### 인증 필요 라우트 (`auth` 미들웨어)
 | Method | URI | 설명 |
@@ -505,11 +474,6 @@ sudo mysql -u root
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'new_password';
 FLUSH PRIVILEGES;
 ```
-
-### Google OAuth 오류
-- Google Cloud Console에서 **정확한 리디렉션 URI** 등록 확인
-- `.env`의 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` 값 확인
-- `php artisan config:clear` 실행 후 재시도
 
 ### 캐시 정리
 ```bash
