@@ -210,7 +210,7 @@ class ReservationController extends Controller
         $reservation = Reservation::findOrFail($id);
 
         // 권한 체크 (임시: 모든 예약 취소 가능)
-        // TODO: Google OAuth 구현 후 대표자/관리자만 취소 가능하도록 변경
+        // TODO: 대표자/관리자만 취소 가능하도록 권한 로직 보강
 
         if ($reservation->status !== 'confirmed') {
             return back()->withErrors(['error' => '이미 취소된 예약입니다.']);
