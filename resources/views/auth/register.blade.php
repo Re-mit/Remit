@@ -30,6 +30,12 @@
                     </div>
                 @endif
 
+                @php
+                    $verifiedEmail = session('register_verified_email');
+                    $pendingEmail = session('register_pending_email');
+                    $isVerified = !empty($verifiedEmail) && $verifiedEmail === old('email');
+                @endphp
+
                 <form method="POST" action="{{ route('register.store') }}" class="space-y-3">
                     @csrf
 
@@ -48,15 +54,62 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value="{{ old('email') }}"
-                            required
-                            autocomplete="email"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="example@gachon.ac.kr"
-                        />
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="email"
+                                name="email"
+                                value="{{ old('email') }}"
+                                required
+                                autocomplete="email"
+                                class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="example@gachon.ac.kr"
+                            />
+                            <button
+                                type="submit"
+                                formaction="{{ route('register.send_code') }}"
+                                formmethod="POST"
+                                formnovalidate
+                                class="flex-shrink-0 px-4 py-2 min-w-[92px] rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                            >
+                                번호 발송
+                            </button>
+                        </div>
+
+                        <div class="mt-2 flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="text"
+                                name="code"
+                                value="{{ old('code') }}"
+                                inputmode="numeric"
+                                pattern="[0-9]{6}"
+                                maxlength="6"
+                                class="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="인증번호 6자리"
+                            />
+                            <button
+                                type="submit"
+                                formaction="{{ route('register.verify_code') }}"
+                                formmethod="POST"
+                                formnovalidate
+                                class="flex-shrink-0 px-4 py-2 min-w-[92px] rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 whitespace-nowrap"
+                            >
+                                인증 확인
+                            </button>
+                        </div>
+
+                        <div class="mt-2 text-xs">
+                            @if($verifiedEmail && $verifiedEmail === old('email'))
+                                <span class="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                                    이메일 인증 완료
+                                </span>
+                            @elseif($pendingEmail && $pendingEmail === old('email'))
+                                <span class="inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                    인증번호 발송됨 (이메일 확인)
+                                </span>
+                            @else
+                                <span class="text-gray-500">인증번호를 발송하고 인증을 완료해야 회원가입이 가능합니다.</span>
+                            @endif
+                        </div>
                     </div>
 
                     <div>
@@ -85,7 +138,8 @@
 
                     <button
                         type="submit"
-                        class="w-full px-4 py-3 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors duration-200"
+                        @disabled(!($verifiedEmail && $verifiedEmail === old('email')))
+                        class="w-full px-4 py-3 rounded-lg font-medium transition-colors duration-200 {{ ($verifiedEmail && $verifiedEmail === old('email')) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}"
                     >
                         회원가입
                     </button>
