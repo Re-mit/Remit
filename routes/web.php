@@ -29,6 +29,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register/send-code', [AuthController::class, 'sendRegisterCode'])->name('register.send_code');
+    Route::post('/register/verify-code', [AuthController::class, 'verifyRegisterCode'])->name('register.verify_code');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
 
