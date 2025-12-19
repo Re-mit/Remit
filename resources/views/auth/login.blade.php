@@ -25,7 +25,7 @@
 
 
                 </div>
-                <h1 class="text-2xl font-semibold text-gray-900">가천관 622호</h1>
+                <h1 class="text-2xl font-semibold text-gray-900">금융수학과 스터디룸</h1>
                 <p class="mt-2 text-gray-600">예약 시스템</p>
             </div>
 

@@ -7,7 +7,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; background:#f6f7fb; padding:24px;">
     <div style="max-width:520px; margin:0 auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
-        <h2 style="margin:0 0 12px; font-size:18px;">Remit 이메일 인증번호</h2>
+        <h2 style="margin:0 0 12px; font-size:18px;">스터디룸룸 예약 시스템 이메일 인증번호</h2>
         <p style="margin:0 0 16px; color:#374151; font-size:14px;">
             아래 인증번호를 회원가입 화면에 입력해주세요. (유효시간: {{ $expiresMinutes }}분)
         </p>

@@ -69,7 +69,8 @@
                                 formaction="{{ route('register.send_code') }}"
                                 formmethod="POST"
                                 formnovalidate
-                                class="flex-shrink-0 px-4 py-2 min-w-[92px] rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                                class="js-loading-btn flex-shrink-0 px-4 py-2 min-w-[92px] rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+                                data-loading-text="발송 중..."
                             >
                                 번호 발송
                             </button>
@@ -120,7 +121,7 @@
                             required
                             autocomplete="new-password"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="8자 이상"
+                            placeholder="4~12자"
                         />
                     </div>
 
@@ -154,5 +155,31 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.js-loading-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      // 중복 클릭 방지
+      if (btn.dataset.loading === '1') {
+        e.preventDefault();
+        return;
+      }
+      btn.dataset.loading = '1';
+
+      // 텍스트는 즉시 변경하되, disabled는 다음 tick에 적용 (일부 브라우저에서 submit 취소 방지)
+      btn.dataset.originalText = btn.textContent.trim();
+      btn.textContent = btn.dataset.loadingText || '처리 중...';
+
+      setTimeout(() => {
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+      }, 0);
+    });
+  });
+});
+</script>
+@endpush
 
 
