@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\AdminController;
+use Illuminate\Support\Facades\Auth;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,25 +21,42 @@ use App\Http\Controllers\AdminController;
 
 // Home -> Redirect to Login
 Route::get('/', function () {
+    // 로그인 상태에서 '/' 접근 시 login으로 보내면 guest 미들웨어와 충돌하여 무한 리다이렉트가 날 수 있음
+    if (Auth::check()) {
+        return redirect()->route('reservation.index');
+    }
+
     return redirect()->route('login');
 });
 
 // Authentication Routes
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 
-Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
-Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register/send-code', [AuthController::class, 'sendRegisterCode'])->name('register.send_code');
+    Route::post('/register/verify-code', [AuthController::class, 'verifyRegisterCode'])->name('register.verify_code');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+});
+
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
 
 // Protected Routes (Auth Required)
 Route::middleware(['auth'])->group(function () {
+    // guest 미들웨어(로그인 상태에서 /login 접근) 기본 리다이렉트 목적지 제공
+    Route::get('/home', function () {
+        return redirect()->route('reservation.index');
+    })->name('home');
+
     // 예약하기
     Route::get('/reservation', [ReservationController::class, 'index'])->name('reservation.index');
     Route::post('/reservation', [ReservationController::class, 'store'])->name('reservation.store');
     Route::get('/reservation/{id}/confirm', [ReservationController::class, 'confirm'])->name('reservation.confirm');
+    Route::get('/reservation/confirm-multi', [ReservationController::class, 'confirmMulti'])->name('reservation.confirm_multi');
     Route::get('/reservation/{id}/detail', [ReservationController::class, 'detail'])->name('reservation.detail');
     Route::delete('/reservation/{id}', [ReservationController::class, 'destroy'])->name('reservation.destroy');
     
@@ -54,8 +72,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/mypage/keycode', [MypageController::class, 'keycode'])->name('mypage.keycode');
 
     // 관리자
-    Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::post('/admin/keycodes', [AdminController::class, 'updateKeycodes'])->name('admin.keycodes.update');
-    Route::post('/admin/notices', [AdminController::class, 'storeNotice'])->name('admin.notices.store');
+    Route::prefix('admin')->group(function () {
+        Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+        Route::get('/urls', [AdminController::class, 'urls'])->name('admin.urls');
+        Route::post('/urls', [AdminController::class, 'updateLockboxUrls'])->name('admin.urls.update');
+
+        Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
+        Route::post('/users', [AdminController::class, 'storeAllowedEmail'])->name('admin.users.store');
+        Route::delete('/users/{id}', [AdminController::class, 'destroyAllowedEmail'])->name('admin.users.destroy');
+        Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admin.admins.store');
+        Route::delete('/admins/{id}', [AdminController::class, 'destroyAdmin'])->name('admin.admins.destroy');
+
+        Route::get('/notices', [AdminController::class, 'notices'])->name('admin.notices');
+        Route::post('/notices', [AdminController::class, 'storeNotice'])->name('admin.notices.store');
+        Route::delete('/notices/{id}', [AdminController::class, 'destroyNotice'])->name('admin.notices.destroy');
+
+        Route::get('/reservations', [AdminController::class, 'reservations'])->name('admin.reservations');
+        Route::delete('/reservations/{id}', [AdminController::class, 'destroyReservation'])->name('admin.reservations.destroy');
+    });
 });
 

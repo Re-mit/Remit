@@ -52,7 +52,7 @@
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-sm font-medium text-gray-900 mb-1">{{ $notification->title }}</p>
-                                        <p class="text-xs text-gray-600">{{ $notification->message }}</p>
+                                        <p class="text-xs text-gray-600">{!! nl2br(e($notification->message)) !!}</p>
                                     </div>
                                 </div>
                             </div>

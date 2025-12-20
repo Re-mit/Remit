@@ -3,7 +3,7 @@
 @section('title', '예약 확인')
 
 @section('content')
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen bg-gray-50 flex flex-col pb-24">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200">
         <div class="px-4 py-4 flex items-center">
@@ -82,8 +82,10 @@
                     <h3 class="text-lg font-semibold text-gray-900">예약 안내</h3>
                 </div>
                 <div class="flex-1">
-                        <ul class="text-sm text-gray-700">• 예약 취소는 1시간 전까지 가능합니다.</li>
-                        <ul class="text-sm text-gray-700">• 열쇠함 비밀번호는 마이페이지에서 확인 가능합니다.</li>
+                    <ul class="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                        <li>예약 취소는 1시간 전까지 가능합니다.</li>
+                        <li>열쇠함 비밀번호는 마이페이지에서 확인 가능합니다.</li>
+                    </ul>
                 </div>
             </div>
         </div>

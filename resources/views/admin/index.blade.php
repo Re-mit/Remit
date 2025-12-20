@@ -28,68 +28,45 @@
             </div>
         @endif
 
-        <!-- 이번 달 예약 비밀번호 -->
+        <!-- 30일(3일 단위) 열쇠함 URL -->
         <div class="bg-white rounded-2xl shadow-sm border p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-bold text-gray-900">이번 달 예약 비밀번호</h2>
+                <h2 class="text-lg font-bold text-gray-900">열쇠함 URL (3일 단위 × 10개)</h2>
                 <div class="text-xs text-gray-500">
                     {{ $start->format('Y-m-d') }} ~ {{ $end->format('Y-m-d') }}
                 </div>
             </div>
 
-            @if($reservations->isEmpty())
-                <div class="text-sm text-gray-600">이번 달 예약이 없습니다.</div>
-            @else
-                <form method="POST" action="{{ route('admin.keycodes.update') }}" class="space-y-4">
-                    @csrf
+            <form method="POST" action="{{ route('admin.keycodes.update') }}" class="space-y-4">
+                @csrf
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="text-left text-gray-500 border-b">
-                                    <th class="py-2 pr-4">일시</th>
-                                    <th class="py-2 pr-4">회의실</th>
-                                    <th class="py-2 pr-4">사용자</th>
-                                    <th class="py-2 pr-4">비밀번호(4자리)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($reservations as $r)
-                                    @php
-                                        $rep = $r->getRepresentative();
-                                        $repLabel = $rep ? ($rep->name . ' (' . $rep->email . ')') : ($r->users->first()?->email ?? '-');
-                                    @endphp
-                                    <tr class="border-b last:border-b-0">
-                                        <td class="py-3 pr-4 whitespace-nowrap">
-                                            {{ $r->start_at->format('m/d') }}
-                                            {{ ($r->start_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->start_at->format('g:i') }}
-                                            ~
-                                            {{ ($r->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->end_at->format('g:i') }}
-                                        </td>
-                                        <td class="py-3 pr-4 whitespace-nowrap">{{ $r->room?->name ?? '-' }}</td>
-                                        <td class="py-3 pr-4 whitespace-nowrap">{{ $repLabel }}</td>
-                                        <td class="py-3 pr-4">
-                                            <input
-                                                name="keycodes[{{ $r->id }}]"
-                                                value="{{ old('keycodes.' . $r->id, $r->key_code) }}"
-                                                inputmode="numeric"
-                                                maxlength="4"
-                                                class="w-24 rounded-lg border px-3 py-2"
-                                                placeholder="0000"
-                                                required
-                                            />
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="space-y-3">
+                    @foreach($blocks as $b)
+                        <div class="rounded-xl border p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-semibold text-gray-900">
+                                    {{ $b['index'] }}번 ({{ $b['start_date'] }} ~ {{ $b['end_date'] }})
+                                </div>
+                                <div class="text-xs text-gray-500">3일</div>
+                            </div>
+                            <input
+                                name="urls[{{ $b['start_date'] }}]"
+                                value="{{ old('urls.' . $b['start_date'], $b['url']) }}"
+                                class="w-full rounded-lg border px-3 py-2"
+                                placeholder="https://example.com/lockbox/..."
+                                required
+                            />
+                            <div class="mt-2 text-xs text-gray-500">
+                                - 해당 구간(3일)의 예약자는 이 URL을 확인하게 됩니다.
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
 
-                    <button type="submit" class="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold">
-                        저장하기
-                    </button>
-                </form>
-            @endif
+                <button type="submit" class="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold">
+                    저장하기
+                </button>
+            </form>
         </div>
 
         <!-- 공지사항 발송 -->
@@ -115,5 +92,6 @@
     </div>
 </div>
 @endsection
+
 
 
