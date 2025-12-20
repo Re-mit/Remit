@@ -86,6 +86,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/notices', [AdminController::class, 'notices'])->name('admin.notices');
         Route::post('/notices', [AdminController::class, 'storeNotice'])->name('admin.notices.store');
+        Route::delete('/notices/{id}', [AdminController::class, 'destroyNotice'])->name('admin.notices.destroy');
 
         Route::get('/reservations', [AdminController::class, 'reservations'])->name('admin.reservations');
         Route::delete('/reservations/{id}', [AdminController::class, 'destroyReservation'])->name('admin.reservations.destroy');

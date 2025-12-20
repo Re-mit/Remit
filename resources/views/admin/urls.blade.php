@@ -24,7 +24,7 @@
 
         <div class="bg-white rounded-2xl shadow-sm border p-5">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <h2 class="text-lg font-bold text-gray-900">열쇠함 URL (3일 단위 × 10개)</h2>
+                <h2 class="text-lg font-bold text-gray-900">열쇠함 URL</h2>
                 <div class="flex items-center gap-2">
                     <a href="{{ route('admin.urls', ['month' => $prevMonth]) }}"
                        class="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
@@ -40,7 +40,7 @@
                 </div>
             </div>
             <div class="text-xs text-gray-500 mb-4">
-                적용 범위: {{ $start->format('Y-m-d') }} ~ {{ $end->format('Y-m-d') }} (30일)
+                적용 범위: {{ $start->format('Y-m-d') }} ~ {{ $end->format('Y-m-d') }} ({{ $daysInMonth ?? $start->daysInMonth }}일)
             </div>
 
             <form method="POST" action="{{ route('admin.urls.update') }}" class="space-y-4">
@@ -54,7 +54,7 @@
                                 <div class="font-semibold text-gray-900">
                                     {{ $b['index'] }}번 ({{ $b['start_date'] }} ~ {{ $b['end_date'] }})
                                 </div>
-                                <div class="text-xs text-gray-500">3일</div>
+                                <div class="text-xs text-gray-500">최대 3일</div>
                             </div>
                             <input
                                 name="urls[{{ $b['start_date'] }}]"

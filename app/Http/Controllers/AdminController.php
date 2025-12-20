@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\Notification;
+use App\Models\Notice;
 use App\Models\User;
 use App\Models\LockboxUrl;
 use App\Models\AllowedEmail;
@@ -49,7 +50,7 @@ class AdminController extends Controller
     }
 
     /**
-     * 30일(3일 단위) URL 등록 페이지
+     * 월 단위 URL 등록 페이지 (3일 단위)
      */
     public function urls()
     {
@@ -70,15 +71,23 @@ class AdminController extends Controller
         }
 
         $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
-        $end = $start->copy()->addDays(29)->endOfDay();
+        $end = $start->copy()->endOfMonth()->endOfDay();
+        $daysInMonth = $start->daysInMonth;
+        $blockCount = (int) ceil($daysInMonth / 3);
 
         $prevMonth = $start->copy()->subMonth()->format('Y-m');
         $nextMonth = $start->copy()->addMonth()->format('Y-m');
 
-        // 3일 단위(10개) URL 블록 생성
-        $blocks = collect(range(0, 9))->map(function ($i) use ($start) {
-            $blockStart = $start->copy()->addDays($i * 3)->toDateString();
-            $blockEnd = $start->copy()->addDays($i * 3 + 2)->toDateString();
+        // 3일 단위 URL 블록 생성 (마지막 블록은 1~2일일 수 있음)
+        $blocks = collect(range(0, $blockCount - 1))->map(function ($i) use ($start, $end) {
+            $blockStartCarbon = $start->copy()->addDays($i * 3);
+            $blockEndCarbon = $blockStartCarbon->copy()->addDays(2);
+            if ($blockEndCarbon->gt($end)) {
+                $blockEndCarbon = $end->copy();
+            }
+
+            $blockStart = $blockStartCarbon->toDateString();
+            $blockEnd = $blockEndCarbon->toDateString();
             $existing = LockboxUrl::where('start_date', $blockStart)->first();
 
             return [
@@ -89,11 +98,11 @@ class AdminController extends Controller
             ];
         });
 
-        return view('admin.urls', compact('unreadCount', 'blocks', 'start', 'end', 'month', 'prevMonth', 'nextMonth'));
+        return view('admin.urls', compact('unreadCount', 'blocks', 'start', 'end', 'month', 'prevMonth', 'nextMonth', 'daysInMonth'));
     }
 
     /**
-     * 3일 단위(10개) URL 저장 (총 30일)
+     * 월 단위 URL 저장 (3일 단위)
      */
     public function updateLockboxUrls(Request $request)
     {
@@ -108,7 +117,11 @@ class AdminController extends Controller
         }
 
         $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
-        $expected = collect(range(0, 9))
+        $end = $start->copy()->endOfMonth()->endOfDay();
+        $daysInMonth = $start->daysInMonth;
+        $blockCount = (int) ceil($daysInMonth / 3);
+
+        $expected = collect(range(0, $blockCount - 1))
             ->map(fn ($i) => $start->copy()->addDays($i * 3)->toDateString())
             ->all();
 
@@ -125,7 +138,11 @@ class AdminController extends Controller
         DB::beginTransaction();
         try {
             foreach ($expected as $d) {
-                $endDate = Carbon::parse($d, 'Asia/Seoul')->addDays(2)->toDateString();
+                $endDateCarbon = Carbon::parse($d, 'Asia/Seoul')->addDays(2)->endOfDay();
+                if ($endDateCarbon->gt($end)) {
+                    $endDateCarbon = $end->copy();
+                }
+                $endDate = $endDateCarbon->toDateString();
                 LockboxUrl::updateOrCreate(
                     ['start_date' => $d],
                     ['end_date' => $endDate, 'url' => $validated['urls'][$d]]
@@ -262,7 +279,15 @@ class AdminController extends Controller
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
 
-        return view('admin.notices', compact('unreadCount'));
+        $myNotices = collect();
+        if ($user) {
+            $myNotices = Notice::query()
+                ->where('author_user_id', $user->id)
+                ->orderByDesc('id')
+                ->paginate(20);
+        }
+
+        return view('admin.notices', compact('unreadCount', 'myNotices'));
     }
 
     /**
@@ -366,10 +391,23 @@ class AdminController extends Controller
         try {
             DB::beginTransaction();
 
+            $author = Auth::user();
+            if (!$author) {
+                DB::rollBack();
+                return back()->withErrors(['error' => '로그인이 필요합니다.']);
+            }
+
+            $notice = Notice::create([
+                'author_user_id' => $author->id,
+                'author_email' => $author->email,
+                'title' => $validated['title'],
+                'message' => $validated['message'],
+            ]);
+
             // 모든 사용자에게 알림 생성
             User::query()
                 ->select('id')
-                ->chunkById(500, function ($users) use ($validated) {
+                ->chunkById(500, function ($users) use ($validated, $notice) {
                     $rows = [];
                     $now = now();
                     foreach ($users as $user) {
@@ -377,9 +415,11 @@ class AdminController extends Controller
                             'user_id' => $user->id,
                             'type' => 'notice',
                             'title' => $validated['title'],
-                            'message' => $validated['message'],
+                            'message' => "작성자: {$notice->author_email}\n\n{$validated['message']}",
                             'created_at' => $now,
                             'updated_at' => $now,
+                            'related_id' => $notice->id,
+                            'related_type' => Notice::class,
                         ];
                     }
                     if (!empty($rows)) {
@@ -394,6 +434,40 @@ class AdminController extends Controller
             DB::rollBack();
             return back()->withErrors(['error' => '공지사항 발송 중 오류가 발생했습니다: ' . $e->getMessage()]);
         }
+    }
+
+    public function destroyNotice($id)
+    {
+        $this->authorizeAdmin();
+
+        $user = Auth::user();
+        if (!$user) {
+            return back()->withErrors(['error' => '로그인이 필요합니다.']);
+        }
+
+        $notice = Notice::query()->findOrFail($id);
+
+        // 본인이 작성한 공지만 삭제 가능
+        if ((int) $notice->author_user_id !== (int) $user->id) {
+            return back()->withErrors(['error' => '본인이 작성한 공지만 삭제할 수 있습니다.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            Notification::query()
+                ->where('related_type', Notice::class)
+                ->where('related_id', $notice->id)
+                ->delete();
+
+            $notice->delete();
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => '공지 삭제 중 오류가 발생했습니다: ' . $e->getMessage()]);
+        }
+
+        return back()->with('success', '공지사항이 삭제되었습니다.');
     }
 }
 
