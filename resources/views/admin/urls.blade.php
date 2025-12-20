@@ -1,17 +1,11 @@
 @extends('layouts.app')
 
-@section('title', '관리자')
+@section('title', '관리자 - URL 등록')
+@section('admin_title', 'URL 등록')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-24">
-    <!-- Header -->
-    <div class="bg-white sticky top-0 z-20 border-b shadow-sm">
-        <div class="flex items-center justify-between px-5 py-4">
-            <a href="{{ route('reservation.index') }}" class="text-sm text-gray-600">←</a>
-            <h1 class="text-xl font-bold text-gray-900">관리자</h1>
-            <div class="w-[26px]"></div>
-        </div>
-    </div>
+    @include('admin._nav')
 
     <div class="p-5 space-y-6">
         @if(session('success'))
@@ -28,17 +22,30 @@
             </div>
         @endif
 
-        <!-- 30일(3일 단위) 열쇠함 URL -->
         <div class="bg-white rounded-2xl shadow-sm border p-5">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <h2 class="text-lg font-bold text-gray-900">열쇠함 URL (3일 단위 × 10개)</h2>
-                <div class="text-xs text-gray-500">
-                    {{ $start->format('Y-m-d') }} ~ {{ $end->format('Y-m-d') }}
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('admin.urls', ['month' => $prevMonth]) }}"
+                       class="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                        이전달
+                    </a>
+                    <div class="text-sm font-bold text-gray-900">
+                        {{ $start->format('Y년 m월') }}
+                    </div>
+                    <a href="{{ route('admin.urls', ['month' => $nextMonth]) }}"
+                       class="px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 whitespace-nowrap">
+                        다음달
+                    </a>
                 </div>
             </div>
+            <div class="text-xs text-gray-500 mb-4">
+                적용 범위: {{ $start->format('Y-m-d') }} ~ {{ $end->format('Y-m-d') }} (30일)
+            </div>
 
-            <form method="POST" action="{{ route('admin.keycodes.update') }}" class="space-y-4">
+            <form method="POST" action="{{ route('admin.urls.update') }}" class="space-y-4">
                 @csrf
+                <input type="hidden" name="month" value="{{ $month }}" />
 
                 <div class="space-y-3">
                     @foreach($blocks as $b)
@@ -56,9 +63,6 @@
                                 placeholder="https://example.com/lockbox/..."
                                 required
                             />
-                            <div class="mt-2 text-xs text-gray-500">
-                                - 해당 구간(3일)의 예약자는 이 URL을 확인하게 됩니다.
-                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -68,30 +72,8 @@
                 </button>
             </form>
         </div>
-
-        <!-- 공지사항 발송 -->
-        <div class="bg-white rounded-2xl shadow-sm border p-5">
-            <h2 class="text-lg font-bold text-gray-900 mb-4">공지사항 발송</h2>
-
-            <form method="POST" action="{{ route('admin.notices.store') }}" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input name="title" value="{{ old('title') }}" class="w-full rounded-lg border px-3 py-2" required />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                    <textarea name="message" rows="5" class="w-full rounded-lg border px-3 py-2" required>{{ old('message') }}</textarea>
-                </div>
-
-                <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold">
-                    공지 발송
-                </button>
-            </form>
-        </div>
     </div>
 </div>
 @endsection
-
 
 

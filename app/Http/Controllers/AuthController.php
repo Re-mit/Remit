@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\EmailVerificationCodeMail;
+use App\Models\AllowedEmail;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -74,12 +75,18 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        $email = $validated['email'];
+        $email = AllowedEmail::normalize($validated['email']);
 
         if (!str_ends_with($email, '@gachon.ac.kr')) {
             return back()
                 ->withInput()
                 ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 인증번호를 발송할 수 있습니다.');
+        }
+
+        if (!AllowedEmail::isAllowed($email)) {
+            return back()
+                ->withInput()
+                ->with('error', '해당 학과가 아닙니다. 관리자에게 문의하세요');
         }
 
         $row = EmailVerificationCode::where('email', $email)->first();
@@ -132,7 +139,7 @@ class AuthController extends Controller
             'code' => ['required', 'string', 'size:6'],
         ]);
 
-        $email = $validated['email'];
+        $email = AllowedEmail::normalize($validated['email']);
         $code = $validated['code'];
 
         $row = EmailVerificationCode::where('email', $email)->first();
@@ -196,11 +203,19 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:4', 'max:12', 'confirmed'],
         ]);
 
+        $validated['email'] = AllowedEmail::normalize($validated['email']);
+
         // 가천 이메일만 허용
         if (!str_ends_with($validated['email'], '@gachon.ac.kr')) {
             return back()
                 ->withInput()
                 ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 회원가입할 수 있습니다.');
+        }
+
+        if (!AllowedEmail::isAllowed($validated['email'])) {
+            return back()
+                ->withInput()
+                ->with('error', '해당 학과가 아닙니다. 관리자에게 문의하세요');
         }
 
         // 이메일 인증 여부 확인 (세션 기반)
