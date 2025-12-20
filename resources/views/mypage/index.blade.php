@@ -3,7 +3,7 @@
 @section('title', '마이페이지')
 
 @section('content')
-<div class="min-h-screen bg-gray-50 pb-20">
+<div class="min-h-screen w-full max-w-[430px] mx-auto bg-gray-50 pb-20">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center justify-between">
