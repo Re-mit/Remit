@@ -182,6 +182,7 @@ class ReservationController extends Controller
         if ($user) {
             $reservations = $user->reservations()
                 ->with(['room', 'users'])
+                ->where('status', 'confirmed')
                 ->orderBy('start_at', 'desc')
                 ->get();
         }
