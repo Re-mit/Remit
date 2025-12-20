@@ -60,8 +60,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/mypage/keycode', [MypageController::class, 'keycode'])->name('mypage.keycode');
 
     // 관리자
-    Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::post('/admin/keycodes', [AdminController::class, 'updateKeycodes'])->name('admin.keycodes.update');
-    Route::post('/admin/notices', [AdminController::class, 'storeNotice'])->name('admin.notices.store');
+    Route::prefix('admin')->group(function () {
+        Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+        Route::get('/urls', [AdminController::class, 'urls'])->name('admin.urls');
+        Route::post('/urls', [AdminController::class, 'updateLockboxUrls'])->name('admin.urls.update');
+
+        Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
+        Route::post('/users', [AdminController::class, 'storeAllowedEmail'])->name('admin.users.store');
+        Route::delete('/users/{id}', [AdminController::class, 'destroyAllowedEmail'])->name('admin.users.destroy');
+
+        Route::get('/notices', [AdminController::class, 'notices'])->name('admin.notices');
+        Route::post('/notices', [AdminController::class, 'storeNotice'])->name('admin.notices.store');
+    });
 });
 

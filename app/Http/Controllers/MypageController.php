@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Reservation;
+use App\Models\LockboxUrl;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,6 +52,7 @@ class MypageController extends Controller
                 ->map(function($reservation) {
                     $now = now('Asia/Seoul');
                     $startAtKst = $reservation->start_at->copy()->timezone('Asia/Seoul');
+                    $dateKst = $startAtKst->toDateString();
 
                     // 뷰에서 format()으로 표시되는 시간과 동일하게 계산
                     // format()은 자동으로 시간대를 변환하므로, format으로 표시되는 값으로 계산
@@ -88,22 +90,30 @@ class MypageController extends Controller
                     // 시작 시간이 지난 예약은 "지난 내역" 처리 + 비밀번호 미노출
                     $reservation->is_past_started = $now >= $startAtKst;
 
-                    // 비밀번호 공개 여부:
+                    // URL 공개 여부:
                     // - 예약 시작 10분 전부터
                     // - 예약 시작 시간 전까지만
                     // - 시작 시간이 지나면 무조건 false
-                    $reservation->is_keycode_disclosed = !$reservation->is_past_started
+                    $reservation->is_url_disclosed = !$reservation->is_past_started
                         && $now >= $tenMinutesBefore
                         && $now < $startAtKst;
                     
                     // 한국 시간으로 포맷팅된 공개 시간 (JavaScript에서 사용)
-                    $reservation->keycode_disclosure_time_formatted = [
+                    $reservation->url_disclosure_time_formatted = [
                         'year' => $tenMinBeforeYear,
                         'month' => $tenMinBeforeMonth,
                         'day' => $tenMinBeforeDay,
                         'hour' => $tenMinBeforeHour,
                         'minute' => $tenMinBeforeMinute,
                     ];
+
+                    // 해당 날짜에 매핑된 URL 조회 (3일 단위)
+                    $lockbox = LockboxUrl::query()
+                        ->whereDate('start_date', '<=', $dateKst)
+                        ->whereDate('end_date', '>=', $dateKst)
+                        ->first();
+
+                    $reservation->lockbox_url = $lockbox?->url;
 
                     // 뱃지 텍스트/색상 (UI)
                     $reservation->badge_text = $reservation->is_past_started ? '지난 내역' : '예약됨';
