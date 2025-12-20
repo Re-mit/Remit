@@ -10,6 +10,16 @@ return [
     |
     */
 
+    'required' => ':attribute 항목은 필수입니다.',
+    'string' => ':attribute 항목은 문자열이어야 합니다.',
+    'max' => [
+        'string' => ':attribute 항목은 최대 :max자까지 입력할 수 있습니다.',
+    ],
+
+    'attributes' => [
+        'cancel_reason' => '삭제 사유',
+    ],
+
     'custom' => [
         'student_id' => [
             'required' => '학번을 입력해주세요.',
@@ -20,6 +30,10 @@ return [
             'confirmed' => '비밀번호가 일치하지 않습니다.',
             'min' => '비밀번호는 4~12자로 입력해주세요.',
             'max' => '비밀번호는 4~12자로 입력해주세요.',
+        ],
+        'cancel_reason' => [
+            'required' => '삭제 사유를 입력해주세요.',
+            'max' => '삭제 사유는 최대 :max자까지 입력할 수 있습니다.',
         ],
     ],
 ];

@@ -11,9 +11,13 @@
             <h1 class="text-xl font-bold text-gray-900">마이페이지</h1>
             <div class="w-[90px] flex items-center justify-end gap-2">
                 @php
-                    $isAdmin = \Illuminate\Support\Facades\Auth::check()
-                        && config('admin.email')
-                        && \Illuminate\Support\Facades\Auth::user()->email === config('admin.email');
+                    $user = \Illuminate\Support\Facades\Auth::user();
+                    $envAdminEmail = config('admin.email');
+                    $isAdmin = $user
+                        && (
+                            ($user->role ?? null) === 'admin'
+                            || ($envAdminEmail && \App\Models\AllowedEmail::normalize($envAdminEmail) === \App\Models\AllowedEmail::normalize($user->email))
+                        );
                 @endphp
                 @if($isAdmin)
                     <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-gray-700">관리자</a>

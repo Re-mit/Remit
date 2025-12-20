@@ -15,11 +15,15 @@ class Reservation extends Model
         'end_at',
         'key_code',
         'status',
+        'cancelled_at',
+        'cancelled_by',
+        'cancel_reason',
     ];
 
     protected $casts = [
         'start_at' => 'datetime',
         'end_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     /**
