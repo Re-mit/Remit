@@ -18,7 +18,15 @@ class AdminController extends Controller
     {
         $adminEmail = config('admin.email');
 
-        if (!Auth::check() || !$adminEmail || Auth::user()->email !== $adminEmail) {
+        if (!Auth::check()) {
+            abort(403, '관리자만 접근할 수 있습니다.');
+        }
+
+        $user = Auth::user();
+        $isEnvAdmin = $adminEmail && mb_strtolower(trim($adminEmail)) === mb_strtolower(trim($user->email));
+        $isRoleAdmin = ($user->role ?? null) === 'admin';
+
+        if (!$isEnvAdmin && !$isRoleAdmin) {
             abort(403, '관리자만 접근할 수 있습니다.');
         }
     }
@@ -150,7 +158,63 @@ class AdminController extends Controller
             ->orderBy('email')
             ->paginate(30);
 
-        return view('admin.users', compact('unreadCount', 'allowedEmails'));
+        $admins = User::query()
+            ->where('role', 'admin')
+            ->orderBy('email')
+            ->get();
+
+        $envAdminEmail = config('admin.email');
+
+        return view('admin.users', compact('unreadCount', 'allowedEmails', 'admins', 'envAdminEmail'));
+    }
+
+    /**
+     * 관리자 등록(권한 부여)
+     */
+    public function storeAdmin(Request $request)
+    {
+        $this->authorizeAdmin();
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $email = AllowedEmail::normalize($validated['email']);
+
+        $user = User::query()->where('email', $email)->first();
+        if (!$user) {
+            return back()->withErrors(['error' => '해당 이메일로 가입된 사용자가 없습니다. 먼저 회원가입을 완료해주세요.']);
+        }
+
+        $user->role = 'admin';
+        $user->save();
+
+        return back()->with('success', '관리자로 등록되었습니다.');
+    }
+
+    /**
+     * 관리자 해제(권한 회수)
+     */
+    public function destroyAdmin($id)
+    {
+        $this->authorizeAdmin();
+
+        $target = User::query()->findOrFail($id);
+
+        $envAdminEmail = config('admin.email');
+        if ($envAdminEmail && AllowedEmail::normalize($envAdminEmail) === AllowedEmail::normalize($target->email)) {
+            return back()->withErrors(['error' => 'ENV로 지정된 슈퍼관리자는 해제할 수 없습니다.']);
+        }
+
+        $adminCount = User::query()->where('role', 'admin')->count();
+        if ($adminCount <= 1) {
+            return back()->withErrors(['error' => '최소 1명의 관리자는 남아 있어야 합니다.']);
+        }
+
+        $target->role = 'user';
+        $target->save();
+
+        return back()->with('success', '관리자 권한이 해제되었습니다.');
     }
 
     public function storeAllowedEmail(Request $request)
@@ -199,6 +263,92 @@ class AdminController extends Controller
         }
 
         return view('admin.notices', compact('unreadCount'));
+    }
+
+    /**
+     * 예약 관리 페이지 (현재 예약된 것들 조회/삭제)
+     */
+    public function reservations()
+    {
+        $this->authorizeAdmin();
+
+        $user = auth()->user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        $reservations = Reservation::with(['room', 'users'])
+            ->where('status', 'confirmed')
+            ->where('end_at', '>', now('Asia/Seoul'))
+            ->orderBy('start_at')
+            ->paginate(30);
+
+        return view('admin.reservations', compact('unreadCount', 'reservations'));
+    }
+
+    public function destroyReservation(Request $request, $id)
+    {
+        $this->authorizeAdmin();
+
+        $reservation = Reservation::findOrFail($id);
+        if ($reservation->status !== 'confirmed') {
+            return back()->withErrors(['error' => '이미 취소된 예약입니다.']);
+        }
+
+        $validated = $request->validate([
+            'cancel_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $reservation->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now('Asia/Seoul'),
+                'cancelled_by' => 'admin',
+                'cancel_reason' => $validated['cancel_reason'],
+            ]);
+
+            // 예약 당사자(참여자)에게 알림 발송
+            $reservation->loadMissing(['users', 'room']);
+            $userIds = $reservation->users->pluck('id')->unique()->values();
+            $now = now();
+
+            if ($userIds->isNotEmpty()) {
+                $timeLabel = $reservation->start_at
+                    ? $reservation->start_at->format('Y년 m월 d일 ') .
+                        (($reservation->start_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $reservation->start_at->format('g:i')) .
+                        ' - ' .
+                        (($reservation->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $reservation->end_at->format('g:i'))
+                    : '';
+
+                $roomLabel = $reservation->room?->name ?? '예약';
+                $reason = $validated['cancel_reason'];
+
+                $rows = [];
+                foreach ($userIds as $uid) {
+                    $rows[] = [
+                        'user_id' => $uid,
+                        'type' => 'reservation_deleted',
+                        'title' => '예약이 삭제되었습니다.',
+                        'message' => "{$roomLabel}\n{$timeLabel}\n삭제 사유: {$reason}",
+                        'read_at' => null,
+                        'related_id' => $reservation->id,
+                        'related_type' => Reservation::class,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                Notification::insert($rows);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => '예약 삭제 처리 중 오류가 발생했습니다: ' . $e->getMessage()]);
+        }
+
+        return back()->with('success', '예약이 취소되었습니다.');
     }
 
     /**

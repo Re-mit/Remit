@@ -20,6 +20,10 @@
                class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.notices') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">
                 공지 작성
             </a>
+            <a href="{{ route('admin.reservations') }}"
+               class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.reservations') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">
+                예약 관리
+            </a>
         </div>
         </div>
     </div>

@@ -11,9 +11,13 @@
             <h1 class="text-xl font-bold text-gray-900">예약</h1>
             <div class="w-[90px] flex items-center justify-end gap-2">
                 @php
-                    $isAdmin = \Illuminate\Support\Facades\Auth::check()
-                        && config('admin.email')
-                        && \Illuminate\Support\Facades\Auth::user()->email === config('admin.email');
+                    $user = \Illuminate\Support\Facades\Auth::user();
+                    $envAdminEmail = config('admin.email');
+                    $isAdmin = $user
+                        && (
+                            ($user->role ?? null) === 'admin'
+                            || ($envAdminEmail && \App\Models\AllowedEmail::normalize($envAdminEmail) === \App\Models\AllowedEmail::normalize($user->email))
+                        );
                 @endphp
                 @if($isAdmin)
                     <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold text-gray-700">관리자</a>
@@ -104,7 +108,7 @@
                     </clipPath>
                     </defs>
                     </svg>
-                    <p class="text-xs text-gray-600 mt-1">최대 4시간까지 연속 선택 가능</p>
+                    <p class="text-xs text-gray-600 mt-1">최대 4시간까지 선택 가능 (연속/비연속)</p>
                 </div>
             </div>
             
@@ -144,8 +148,7 @@
     <div class="px-4 pb-6">
         <form method="POST" action="{{ route('reservation.store') }}" x-ref="reservationForm">
             @csrf
-            <input type="hidden" name="start_at" :value="getStartDateTime()">
-            <input type="hidden" name="end_at" :value="getEndDateTime()">
+            <input type="hidden" name="segments" :value="getSegmentsJson()">
             
             <button 
                 type="submit"
@@ -335,11 +338,9 @@ function reservationApp() {
         
         getSelectedTimeRange() {
             if (this.selectedTimes.length === 0) return '';
-            const sorted = [...this.selectedTimes].sort();
-            const start = sorted[0];
-            const lastHour = parseInt(sorted[sorted.length - 1].split(':')[0]);
-            const end = `${(lastHour + 1).toString().padStart(2, '0')}:00`;
-            return `${start} ~ ${end}`;
+            return this.getSegments()
+                .map(seg => `${seg.start_time} ~ ${seg.end_time}`)
+                .join(', ');
         },
         
         clearSelection() {
@@ -353,18 +354,44 @@ function reservationApp() {
             return `${year}-${month}-${day}`;
         },
         
-        getStartDateTime() {
-            if (this.selectedTimes.length === 0) return '';
-            const sorted = [...this.selectedTimes].sort();
-            return `${this.formatDate(this.selectedDate)}T${sorted[0]}`;
+        getSegments() {
+            if (this.selectedTimes.length === 0) return [];
+
+            const dateStr = this.formatDate(this.selectedDate);
+            const hours = [...this.selectedTimes]
+                .map(t => parseInt(t.split(':')[0], 10))
+                .sort((a, b) => a - b);
+
+            const groups = [];
+            let current = [hours[0]];
+            for (let i = 1; i < hours.length; i++) {
+                if (hours[i] === hours[i - 1] + 1) {
+                    current.push(hours[i]);
+                } else {
+                    groups.push(current);
+                    current = [hours[i]];
+                }
+            }
+            groups.push(current);
+
+            return groups.map(g => {
+                const startHour = g[0];
+                const endHour = g[g.length - 1] + 1;
+                const start_time = `${startHour.toString().padStart(2, '0')}:00`;
+                const end_time = `${endHour.toString().padStart(2, '0')}:00`;
+                return {
+                    start_at: `${dateStr}T${start_time}`,
+                    end_at: `${dateStr}T${end_time}`,
+                    start_time,
+                    end_time,
+                    hours: g.length,
+                };
+            });
         },
-        
-        getEndDateTime() {
-            if (this.selectedTimes.length === 0) return '';
-            const sorted = [...this.selectedTimes].sort();
-            const lastHour = parseInt(sorted[sorted.length - 1].split(':')[0]);
-            const endHour = `${(lastHour + 1).toString().padStart(2, '0')}:00`;
-            return `${this.formatDate(this.selectedDate)}T${endHour}`;
+
+        getSegmentsJson() {
+            const segments = this.getSegments().map(s => ({ start_at: s.start_at, end_at: s.end_at }));
+            return JSON.stringify(segments);
         }
     }
 }
