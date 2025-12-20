@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', '열쇠함 비밀번호')
+@section('title', '열쇠함 URL')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-20" x-data="keycodeApp()">
@@ -12,7 +12,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </a>
-            <h1 class="text-xl font-bold text-gray-900">열쇠함 비밀번호</h1>
+            <h1 class="text-xl font-bold text-gray-900">열쇠함 URL</h1>
         </div>
     </div>
 
@@ -29,7 +29,7 @@
                     @foreach($reservations as $reservation)
                         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                             <button 
-                                @click="showKeycode({{ $reservation->id }}, '{{ $reservation->key_code }}', {{ $reservation->is_keycode_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->keycode_disclosure_time_formatted) }}, {{ ($reservation->is_past_started ?? false) ? 'true' : 'false' }})"
+                                @click="showUrl({{ $reservation->id }}, @js($reservation->lockbox_url), {{ $reservation->is_url_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->url_disclosure_time_formatted) }}, {{ ($reservation->is_past_started ?? false) ? 'true' : 'false' }})"
                                 class="w-full p-4 text-left">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
@@ -77,9 +77,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">열쇠함 이용 안내</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">열쇠함 URL 안내</h3>
                     <ul class="space-y-2 text-sm text-gray-700">
-                        <li>• 열쇠함 비밀번호는 예약 시간 10분 전부터 확인 가능합니다.</li>
+                        <li>• 열쇠함 URL은 예약 시간 10분 전부터 확인 가능합니다.</li>
                         <li>• 열쇠함은 가천관 6층 622호 문에 위치해 있습니다.</li>
                         <li>• 사용 후 반드시 원래 자리에 열쇠를 반납해 주세요.</li>
                     </ul>
@@ -88,7 +88,7 @@
         </div>
     </div>
 
-    <!-- Keycode Modal -->
+    <!-- URL Modal -->
     <div x-show="showModal" 
          x-cloak
          x-transition:enter="transition ease-out duration-300"
@@ -106,7 +106,7 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">열쇠함 비밀번호</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">열쇠함 URL</h3>
             
             <div class="mb-4">
                 <span x-show="isDisclosed" class="text-sm font-semibold text-green-600">공개됨</span>
@@ -119,7 +119,16 @@
                         <svg class="w-12 h-12 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        <p class="text-2xl font-bold text-gray-900" x-text="keycode"></p>
+                        <a class="text-sm font-semibold text-blue-600 break-all text-center" :href="url" target="_blank" rel="noopener noreferrer" x-text="url || '등록된 URL이 없습니다'"></a>
+                        <button
+                            type="button"
+                            class="mt-3 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600"
+                            @click="copyUrl()"
+                            :disabled="!url"
+                            :class="!url ? 'opacity-50 cursor-not-allowed' : ''"
+                        >
+                            URL 복사
+                        </button>
                     </div>
                 </template>
                 <template x-if="!isDisclosed">
@@ -146,20 +155,20 @@
 function keycodeApp() {
     return {
         showModal: false,
-        keycode: '',
+        url: '',
         startAt: null,
         isDisclosed: false,
         isPast: false,
         disclosureTime: '',
 
-        showKeycode(reservationId, code, isDisclosed, disclosureTimeData, isPast) {
-            this.keycode = code;
+        showUrl(reservationId, url, isDisclosed, disclosureTimeData, isPast) {
+            this.url = url || '';
             this.isPast = isPast === true;
 
-            // 시작 시간이 지난 내역은 비밀번호 미노출 (내역만 표시)
+            // 시작 시간이 지난 내역은 URL 미노출 (내역만 표시)
             if (this.isPast) {
                 this.isDisclosed = false;
-                this.disclosureTime = '지난 내역입니다. (비밀번호 확인 불가)';
+                this.disclosureTime = '지난 내역입니다. (URL 확인 불가)';
                 this.showModal = true;
                 return;
             }
@@ -179,7 +188,17 @@ function keycodeApp() {
             }
             
             this.showModal = true;
-        }
+        },
+
+        async copyUrl() {
+            if (!this.url) return;
+            try {
+                await navigator.clipboard.writeText(this.url);
+                this.disclosureTime = 'URL이 복사되었습니다.';
+            } catch (e) {
+                this.disclosureTime = '복사에 실패했습니다. URL을 길게 눌러 복사해주세요.';
+            }
+        },
     }
 }
 </script>
