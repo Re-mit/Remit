@@ -41,6 +41,45 @@
                 </button>
             </form>
         </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border p-5">
+            <h2 class="text-lg font-bold text-gray-900 mb-2">내가 작성한 공지</h2>
+            <p class="text-sm text-gray-600 mb-4">잘못 작성한 공지는 여기서 삭제할 수 있습니다. (삭제 시 모든 사용자에게서도 함께 삭제됩니다.)</p>
+
+            @if(empty($myNotices) || $myNotices->isEmpty())
+                <div class="text-sm text-gray-600">아직 작성한 공지가 없습니다.</div>
+            @else
+                <div class="space-y-3">
+                    @foreach($myNotices as $n)
+                        <div class="rounded-xl border p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-gray-900 break-all">{{ $n->title }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $n->created_at?->format('Y-m-d H:i') ?? '' }}
+                                    </div>
+                                    <div class="text-sm text-gray-700 mt-3 whitespace-pre-line">{{ $n->message }}</div>
+                                </div>
+
+                                <form method="POST" action="{{ route('admin.notices.destroy', $n->id) }}"
+                                      onsubmit="return confirm('이 공지를 삭제하시겠습니까? 삭제하면 모든 사용자에게서도 사라집니다.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                            class="flex-shrink-0 px-3 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-semibold border border-red-200 hover:bg-red-100 whitespace-nowrap">
+                                        삭제
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="mt-4">
+                    {{ $myNotices->links() }}
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 @endsection
