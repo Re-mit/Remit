@@ -11,7 +11,7 @@ class CheckInternalIp
     /**
 
      * 내부망만 서비스 접근 허용 (방법 A)
-     * - 내부망: 172.25.128.0/21
+     * - 내부망: 172.25.72.0/21
      * - 로컬 개발: 127.0.0.1, ::1 허용
      */
     public function handle(Request $request, Closure $next)
@@ -19,7 +19,7 @@ class CheckInternalIp
         $allowed = [
             '127.0.0.1',
             '::1',
-            '172.25.128.0/21',
+            '172.25.72.0/21',
         ];
 
         $ip = $request->ip();
