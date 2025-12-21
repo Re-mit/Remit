@@ -51,7 +51,12 @@
                                         @endif
                                     </div>
                                     <div class="flex-1">
-                                        <p class="text-sm font-medium text-gray-900 mb-1">{{ $notification->title }}</p>
+                                        <div class="flex items-start justify-between gap-3 mb-1">
+                                            <p class="text-sm font-medium text-gray-900">{{ $notification->title }}</p>
+                                            <p class="text-[11px] text-gray-500 whitespace-nowrap">
+                                                {{ $notification->created_at?->timezone('Asia/Seoul')->format('Y년 m월 d일 H:i') }}
+                                            </p>
+                                        </div>
                                         <p class="text-xs text-gray-600">{!! nl2br(e($notification->message)) !!}</p>
                                     </div>
                                 </div>
