@@ -28,8 +28,10 @@ class AllowedEmail extends Model
             return true;
         }
 
+        // allowlist가 비어있으면 기본은 "차단" (운영 정책: 관리자가 등록한 이메일만 회원가입 허용)
+        // 단, ENV로 지정된 슈퍼관리자 이메일은 예외로 허용(위에서 처리)
         if (!self::query()->exists()) {
-            return true;
+            return false;
         }
 
         return self::query()->where('email', $email)->exists();
