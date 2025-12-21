@@ -66,7 +66,7 @@
             </div>
 
             <!-- Cancel Button -->
-            @if($reservation->status === 'confirmed' && $reservation->start_at->isFuture())
+            @if($reservation->status === 'confirmed' && $reservation->start_at?->timezone('Asia/Seoul')->isFuture())
                 <form method="POST" action="{{ route('reservation.destroy', $reservation->id) }}" 
                       onsubmit="return confirmCancel()" 
                       x-data="{ showModal: false }"
