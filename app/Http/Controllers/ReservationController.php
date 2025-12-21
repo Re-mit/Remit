@@ -162,7 +162,14 @@ class ReservationController extends Controller
             }
 
             // 기본 방 (가천관 622호) 가져오기 (레거시 데이터 '622호'도 허용)
-            $room = Room::whereIn('name', ['가천관 622호', '622호'])->firstOrFail();
+            // 다른 PC/환경에서 seed가 안 되어 rooms 테이블이 비어있을 수 있으므로, 없으면 자동 생성
+            $room = Room::whereIn('name', ['가천관 622호', '622호'])->first();
+            if (!$room) {
+                $room = Room::updateOrCreate(
+                    ['name' => '가천관 622호'],
+                    ['description' => '학과 공용 스터디룸']
+                );
+            }
 
             $createdIds = [];
 
