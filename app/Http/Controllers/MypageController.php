@@ -56,59 +56,32 @@ class MypageController extends Controller
                 ->map(function($reservation) {
                     $now = now('Asia/Seoul');
                     $startAtKst = $reservation->start_at->copy()->timezone('Asia/Seoul');
+                    $endAtKst = $reservation->end_at->copy()->timezone('Asia/Seoul');
                     $dateKst = $startAtKst->toDateString();
 
-                    // 뷰에서 format()으로 표시되는 시간과 동일하게 계산
-                    // format()은 자동으로 시간대를 변환하므로, format으로 표시되는 값으로 계산
-                    // 예: 오전 10시 예약 -> format('H')는 10을 반환 (이미 한국 시간)
-                    $year = (int)$reservation->start_at->format('Y');
-                    $month = (int)$reservation->start_at->format('n');
-                    $day = (int)$reservation->start_at->format('j');
-                    $hour = (int)$reservation->start_at->format('G');
-                    $minute = (int)$reservation->start_at->format('i');
+                    // URL 공개 시간: 예약 시작 1시간 전 (KST 기준)
+                    // - Carbon을 사용하면 일/월/년 경계도 안전하게 처리됨
+                    $oneHourBefore = $startAtKst->copy()->subHour();
                     
-                    // 10분 전 계산
-                    $tenMinBeforeMinute = $minute - 10;
-                    $tenMinBeforeHour = $hour;
-                    $tenMinBeforeDay = $day;
-                    $tenMinBeforeMonth = $month;
-                    $tenMinBeforeYear = $year;
-                    
-                    if ($tenMinBeforeMinute < 0) {
-                        $tenMinBeforeMinute += 60;
-                        $tenMinBeforeHour--;
-                        if ($tenMinBeforeHour < 0) {
-                            $tenMinBeforeHour = 23;
-                            $tenMinBeforeDay--;
-                            // 월/년 경계 처리는 간단하게 (실제로는 필요하지만 여기서는 생략)
-                        }
-                    }
-                    
-                    // 한국 시간으로 10분 전 시간 생성
-                    $tenMinutesBefore = \Carbon\Carbon::create(
-                        $tenMinBeforeYear, $tenMinBeforeMonth, $tenMinBeforeDay,
-                        $tenMinBeforeHour, $tenMinBeforeMinute, 0,
-                        'Asia/Seoul'
-                    );
-                    
-                    // 시작 시간이 지난 예약은 "지난 내역" 처리 + 비밀번호 미노출
-                    $reservation->is_past_started = $now >= $startAtKst;
+                    // 종료 시간이 지난 예약은 "지난 내역" 처리 + URL 미노출
+                    // (목록 쿼리에서 end_at > now로 필터링하지만, UI/JS 안전장치로 유지)
+                    $reservation->is_past_ended = $now >= $endAtKst;
 
                     // URL 공개 여부:
-                    // - 예약 시작 10분 전부터
-                    // - 예약 시작 시간 전까지만
-                    // - 시작 시간이 지나면 무조건 false
-                    $reservation->is_url_disclosed = !$reservation->is_past_started
-                        && $now >= $tenMinutesBefore
-                        && $now < $startAtKst;
+                    // - 예약 시작 1시간 전부터
+                    // - 예약 종료 시간 전까지만
+                    // - 종료 시간이 지나면 무조건 false
+                    $reservation->is_url_disclosed = !$reservation->is_past_ended
+                        && $now >= $oneHourBefore
+                        && $now < $endAtKst;
                     
                     // 한국 시간으로 포맷팅된 공개 시간 (JavaScript에서 사용)
                     $reservation->url_disclosure_time_formatted = [
-                        'year' => $tenMinBeforeYear,
-                        'month' => $tenMinBeforeMonth,
-                        'day' => $tenMinBeforeDay,
-                        'hour' => $tenMinBeforeHour,
-                        'minute' => $tenMinBeforeMinute,
+                        'year' => (int)$oneHourBefore->format('Y'),
+                        'month' => (int)$oneHourBefore->format('n'),
+                        'day' => (int)$oneHourBefore->format('j'),
+                        'hour' => (int)$oneHourBefore->format('G'),
+                        'minute' => (int)$oneHourBefore->format('i'),
                     ];
 
                     // 해당 날짜에 매핑된 URL 조회 (3일 단위)
@@ -120,8 +93,8 @@ class MypageController extends Controller
                     $reservation->lockbox_url = $lockbox?->url;
 
                     // 뱃지 텍스트/색상 (UI)
-                    $reservation->badge_text = $reservation->is_past_started ? '지난 내역' : '예약됨';
-                    $reservation->badge_class = $reservation->is_past_started
+                    $reservation->badge_text = $reservation->is_past_ended ? '지난 내역' : '예약됨';
+                    $reservation->badge_class = $reservation->is_past_ended
                         ? 'bg-gray-800 text-white'
                         : 'bg-blue-500 text-white';
                     

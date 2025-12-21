@@ -73,12 +73,14 @@ class AdminController extends Controller
         $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
         $end = $start->copy()->endOfMonth()->endOfDay();
         $daysInMonth = $start->daysInMonth;
-        $blockCount = (int) ceil($daysInMonth / 3);
+        // 고정 10개 블록:
+        // 1) 1~3, 2) 4~6, ... 9) 25~27, 10) 28~말일(30/31/윤2월)
+        $blockCount = 10;
 
         $prevMonth = $start->copy()->subMonth()->format('Y-m');
         $nextMonth = $start->copy()->addMonth()->format('Y-m');
 
-        // 3일 단위 URL 블록 생성 (마지막 블록은 1~2일일 수 있음)
+        // 3일 단위 URL 블록 생성 (10번은 말일까지 포함되어 3~4일이 될 수 있음)
         $blocks = collect(range(0, $blockCount - 1))->map(function ($i) use ($start, $end) {
             $blockStartCarbon = $start->copy()->addDays($i * 3);
             $blockEndCarbon = $blockStartCarbon->copy()->addDays(2);
@@ -118,8 +120,8 @@ class AdminController extends Controller
 
         $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
         $end = $start->copy()->endOfMonth()->endOfDay();
-        $daysInMonth = $start->daysInMonth;
-        $blockCount = (int) ceil($daysInMonth / 3);
+        // 고정 10개 블록
+        $blockCount = 10;
 
         $expected = collect(range(0, $blockCount - 1))
             ->map(fn ($i) => $start->copy()->addDays($i * 3)->toDateString())
@@ -137,6 +139,16 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         try {
+            // 과거(동적 블록)로 저장된 같은 달 데이터 중, 이번에 기대하는 10개 start_date가 아닌 레코드는 제거
+            // (예: 31일 달에서 start_date=31 같은 단독 블록이 남아있으면 날짜 매칭이 겹쳐 first() 결과가 불안정해짐)
+            $monthStartDate = $start->copy()->toDateString();
+            $monthEndDate = $end->copy()->toDateString();
+            LockboxUrl::query()
+                ->whereDate('start_date', '>=', $monthStartDate)
+                ->whereDate('start_date', '<=', $monthEndDate)
+                ->whereNotIn('start_date', $expected)
+                ->delete();
+
             foreach ($expected as $d) {
                 $endDateCarbon = Carbon::parse($d, 'Asia/Seoul')->addDays(2)->endOfDay();
                 if ($endDateCarbon->gt($end)) {
@@ -155,7 +167,7 @@ class AdminController extends Controller
             return back()->withErrors(['error' => 'URL 저장 중 오류가 발생했습니다: ' . $e->getMessage()]);
         }
 
-        return back()->with('success', '30일(3일 단위) 열쇠함 URL이 저장되었습니다.');
+        return back()->with('success', '열쇠함 URL이 저장되었습니다.');
     }
 
     /**

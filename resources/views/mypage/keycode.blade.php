@@ -29,12 +29,12 @@
                     @foreach($reservations as $reservation)
                         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                             <button 
-                                @click="showUrl({{ $reservation->id }}, @js($reservation->lockbox_url), {{ $reservation->is_url_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->url_disclosure_time_formatted) }}, {{ ($reservation->is_past_started ?? false) ? 'true' : 'false' }})"
+                                @click="showUrl({{ $reservation->id }}, @js($reservation->lockbox_url), {{ $reservation->is_url_disclosed ? 'true' : 'false' }}, {{ json_encode($reservation->url_disclosure_time_formatted) }}, {{ ($reservation->is_past_ended ?? false) ? 'true' : 'false' }})"
                                 class="w-full p-4 text-left">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center flex-1">
                                         <div class="flex-shrink-0 mr-4">
-                                            @if(($reservation->is_past_started ?? false))
+                                            @if(($reservation->is_past_ended ?? false))
                                                 <!-- 지난 내역 -->
                                                 <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                                                     <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,7 +79,7 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">열쇠함 URL 안내</h3>
                     <ul class="space-y-2 text-sm text-gray-700">
-                        <li>• 열쇠함 URL은 예약 시간 10분 전부터 확인 가능합니다.</li>
+                        <li>• 열쇠함 URL은 예약 시간 1시간 전부터 확인 가능합니다.</li>
                         <li>• 열쇠함은 가천관 6층 622호 문에 위치해 있습니다.</li>
                         <li>• 사용 후 반드시 원래 자리에 열쇠를 반납해 주세요.</li>
                     </ul>
@@ -115,11 +115,18 @@
 
             <div class="flex items-center justify-center mb-4">
                 <template x-if="isDisclosed">
-                    <div class="flex flex-col items-center">
+                    <div class="flex flex-col items-center w-full">
                         <svg class="w-12 h-12 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
-                        <a class="text-sm font-semibold text-blue-600 break-all text-center" :href="url" target="_blank" rel="noopener noreferrer" x-text="url || '등록된 URL이 없습니다'"></a>
+                        <a
+                            class="text-sm font-semibold text-blue-600 text-center block w-full max-w-full whitespace-normal break-all break-words"
+                            style="overflow-wrap:anywhere; word-break:break-all; white-space:normal;"
+                            :href="url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            x-text="url || '등록된 URL이 없습니다'"
+                        ></a>
                         <button
                             type="button"
                             class="mt-3 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600"
@@ -165,7 +172,7 @@ function keycodeApp() {
             this.url = url || '';
             this.isPast = isPast === true;
 
-            // 시작 시간이 지난 내역은 URL 미노출 (내역만 표시)
+            // 종료 시간이 지난 내역은 URL 미노출 (내역만 표시)
             if (this.isPast) {
                 this.isDisclosed = false;
                 this.disclosureTime = '지난 내역입니다. (URL 확인 불가)';
