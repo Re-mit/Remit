@@ -79,7 +79,7 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-900 mb-3">열쇠함 URL 안내</h3>
                     <ul class="space-y-2 text-sm text-gray-700">
-                        <li>• 열쇠함 URL은 예약 시간 1시간 전부터 확인 가능합니다.</li>
+                        <li>• 열쇠함 URL은 예약 시간 10분 전부터 확인 가능합니다.</li>
                         <li>• 열쇠함은 가천관 6층 622호 문에 위치해 있습니다.</li>
                         <li>• 사용 후 반드시 원래 자리에 열쇠를 반납해 주세요.</li>
                     </ul>
