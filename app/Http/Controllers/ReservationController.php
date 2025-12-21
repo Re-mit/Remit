@@ -227,7 +227,15 @@ class ReservationController extends Controller
     public function confirm($id)
     {
         $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
-        return view('reservation.confirm', compact('reservation'));
+        
+        // 읽지 않은 알림 수 가져오기
+        $user = Auth::user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        return view('reservation.confirm', compact('reservation', 'unreadCount'));
     }
 
     /**
@@ -245,6 +253,9 @@ class ReservationController extends Controller
             return redirect()->route('login')->with('error', '로그인이 필요합니다.');
         }
 
+        // 읽지 않은 알림 수 가져오기
+        $unreadCount = $user->notifications()->whereNull('read_at')->count();
+
         $reservations = Reservation::with(['room', 'users'])
             ->whereIn('id', $ids)
             ->whereHas('users', function ($q) use ($user) {
@@ -259,7 +270,7 @@ class ReservationController extends Controller
 
         $date = $reservations->first()->start_at->format('Y년 m월 d일');
 
-        return view('reservation.confirm-multi', compact('reservations', 'date'));
+        return view('reservation.confirm-multi', compact('reservations', 'date', 'unreadCount'));
     }
 
     /**
@@ -268,15 +279,7 @@ class ReservationController extends Controller
     public function detail($id)
     {
         $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
-        
-        // 읽지 않은 알림 수 가져오기
-        $user = Auth::user();
-        $unreadCount = 0;
-        if ($user) {
-            $unreadCount = $user->notifications()->whereNull('read_at')->count();
-        }
-
-        return view('reservation.detail', compact('reservation', 'unreadCount'));
+        return view('reservation.detail', compact('reservation'));
     }
 
     /**
