@@ -5,9 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Reservation;
 use App\Models\LockboxUrl;
+use App\Models\Notice;
+use App\Models\Notification;
+use App\Models\EmailVerificationCode;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MypageController extends Controller
 {
@@ -126,5 +130,51 @@ class MypageController extends Controller
         }
 
         return view('mypage.keycode', compact('reservations'));
+    }
+
+    /**
+     * 회원탈퇴 (Hard delete)
+     */
+    public function destroy(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login')->with('error', '로그인이 필요합니다.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // 내가 작성한 공지(notices)가 있다면, 해당 공지에 연결된 알림(모든 사용자)을 먼저 삭제
+            $noticeIds = Notice::query()
+                ->where('author_user_id', $user->id)
+                ->pluck('id');
+
+            if ($noticeIds->isNotEmpty()) {
+                Notification::query()
+                    ->where('related_type', Notice::class)
+                    ->whereIn('related_id', $noticeIds->all())
+                    ->delete();
+            }
+
+            // 세션/인증 관련 정리 (FK가 없는 테이블들)
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+            EmailVerificationCode::query()->where('email', $user->email)->delete();
+
+            // 사용자 하드 삭제 (notifications/usage_logs/reservation_users/notices 등은 FK cascade로 정리)
+            User::query()->whereKey($user->id)->delete();
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => '회원탈퇴 처리 중 오류가 발생했습니다: ' . $e->getMessage()]);
+        }
+
+        // 로그아웃 및 세션 파기
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('success', '회원탈퇴가 완료되었습니다.');
     }
 }
