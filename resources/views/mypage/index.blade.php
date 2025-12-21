@@ -127,7 +127,7 @@
 
         <!-- 회원탈퇴 버튼 (Hard delete) -->
         <form method="POST" action="{{ route('mypage.destroy') }}"
-              onsubmit="return confirm('정말 회원탈퇴 하시겠습니까?\\n\\n- 계정이 DB에서 완전히 삭제됩니다.\\n- 되돌릴 수 없습니다.\\n- 작성한 공지/알림/예약 연결 정보 등이 함께 삭제됩니다.');">
+              onsubmit="return confirm('정말 회원탈퇴 하시겠습니까?');">
             @csrf
             @method('DELETE')
             <button type="submit"
