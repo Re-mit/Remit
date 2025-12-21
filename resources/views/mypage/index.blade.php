@@ -124,6 +124,17 @@
                 로그아웃
             </button>
         </form>
+
+        <!-- 회원탈퇴 버튼 (Hard delete) -->
+        <form method="POST" action="{{ route('mypage.destroy') }}"
+              onsubmit="return confirm('정말 회원탈퇴 하시겠습니까?\\n\\n- 계정이 DB에서 완전히 삭제됩니다.\\n- 되돌릴 수 없습니다.\\n- 작성한 공지/알림/예약 연결 정보 등이 함께 삭제됩니다.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit"
+                    class="w-full bg-gray-900 text-white py-4 px-4 rounded-xl font-semibold hover:bg-gray-800 transition-all duration-200 flex items-center justify-center">
+                회원탈퇴
+            </button>
+        </form>
     </div>
 </div>
 @endsection
