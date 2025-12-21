@@ -54,7 +54,9 @@
                                 <div class="font-semibold text-gray-900">
                                     {{ $b['index'] }}번 ({{ $b['start_date'] }} ~ {{ $b['end_date'] }})
                                 </div>
-                                <div class="text-xs text-gray-500">최대 3일</div>
+                                <div class="text-xs text-gray-500">
+                                    {{ $b['index'] === 10 ? '말일까지' : '3일' }}
+                                </div>
                             </div>
                             <input
                                 name="urls[{{ $b['start_date'] }}]"
