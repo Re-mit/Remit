@@ -268,7 +268,15 @@ class ReservationController extends Controller
     public function detail($id)
     {
         $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
-        return view('reservation.detail', compact('reservation'));
+        
+        // 읽지 않은 알림 수 가져오기
+        $user = Auth::user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        return view('reservation.detail', compact('reservation', 'unreadCount'));
     }
 
     /**
