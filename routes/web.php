@@ -70,6 +70,7 @@ Route::middleware(['auth'])->group(function () {
     // 마이페이지
     Route::get('/mypage', [MypageController::class, 'index'])->name('mypage.index');
     Route::get('/mypage/keycode', [MypageController::class, 'keycode'])->name('mypage.keycode');
+    Route::delete('/mypage', [MypageController::class, 'destroy'])->name('mypage.destroy');
 
     // 관리자
     Route::prefix('admin')->group(function () {
