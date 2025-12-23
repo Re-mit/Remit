@@ -20,9 +20,19 @@ class ReservationController extends Controller
      */
     public function index()
     {
+        // 예약하기 화면에서는 "이미 시작했지만 아직 끝나지 않은 예약"도
+        // 예약된 시간대로 표시되어야 하므로 start_at 기준 필터링을 쓰면 안 됩니다.
+        // (예: 13~16 예약이 있고 14시에 접속하면, start_at < now()라서 누락되어 15시가 빈칸으로 보일 수 있음)
+        $nowKst = now('Asia/Seoul');
+        $rangeStart = $nowKst->copy()->startOfDay(); // 오늘 00:00 (KST)
+        $rangeEnd = $nowKst->copy()->addDays(7)->endOfDay(); // 7일 후 23:59:59 (KST)
+
         $reservations = Reservation::with(['room', 'users'])
             ->where('status', 'confirmed')
-            ->where('start_at', '>=', now())
+            // 조회 범위(오늘~7일)에 걸쳐있는 예약만 포함 + "진행중(end_at > now)" 예약도 포함
+            // 겹침 조건: start_at < rangeEnd AND end_at > rangeStart
+            ->where('start_at', '<', $rangeEnd)
+            ->where('end_at', '>', $rangeStart)
             ->orderBy('start_at')
             ->get();
 
