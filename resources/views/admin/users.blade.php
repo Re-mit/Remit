@@ -57,7 +57,7 @@
                                         <span>{{ $row->email }}</span>
                                         @if($isEnvAdmin)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border border-indigo-300 text-indigo-700 bg-indigo-50">
-                                                슈퍼(ENV)
+                                                슈퍼
                                             </span>
                                         @endif
                                     </div>
