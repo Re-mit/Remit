@@ -59,29 +59,29 @@ class MypageController extends Controller
                     $endAtKst = $reservation->end_at->copy()->timezone('Asia/Seoul');
                     $dateKst = $startAtKst->toDateString();
 
-                    // URL 공개 시간: 예약 시작 1시간 전 (KST 기준)
+                    // URL 공개 시간: 예약 시작 10분 전 (KST 기준)
                     // - Carbon을 사용하면 일/월/년 경계도 안전하게 처리됨
-                    $oneHourBefore = $startAtKst->copy()->subHour();
+                    $tenMinutesBefore = $startAtKst->copy()->subMinutes(10);
                     
                     // 종료 시간이 지난 예약은 "지난 내역" 처리 + URL 미노출
                     // (목록 쿼리에서 end_at > now로 필터링하지만, UI/JS 안전장치로 유지)
                     $reservation->is_past_ended = $now >= $endAtKst;
 
                     // URL 공개 여부:
-                    // - 예약 시작 1시간 전부터
+                    // - 예약 시작 10분 전부터
                     // - 예약 종료 시간 전까지만
                     // - 종료 시간이 지나면 무조건 false
                     $reservation->is_url_disclosed = !$reservation->is_past_ended
-                        && $now >= $oneHourBefore
+                        && $now >= $tenMinutesBefore
                         && $now < $endAtKst;
                     
                     // 한국 시간으로 포맷팅된 공개 시간 (JavaScript에서 사용)
                     $reservation->url_disclosure_time_formatted = [
-                        'year' => (int)$oneHourBefore->format('Y'),
-                        'month' => (int)$oneHourBefore->format('n'),
-                        'day' => (int)$oneHourBefore->format('j'),
-                        'hour' => (int)$oneHourBefore->format('G'),
-                        'minute' => (int)$oneHourBefore->format('i'),
+                        'year' => (int)$tenMinutesBefore->format('Y'),
+                        'month' => (int)$tenMinutesBefore->format('n'),
+                        'day' => (int)$tenMinutesBefore->format('j'),
+                        'hour' => (int)$tenMinutesBefore->format('G'),
+                        'minute' => (int)$tenMinutesBefore->format('i'),
                     ];
 
                     // 해당 날짜에 매핑된 URL 조회 (3일 단위)
