@@ -36,7 +36,48 @@
                     $isVerified = !empty($verifiedEmail) && $verifiedEmail === old('email');
                 @endphp
 
-                <form method="POST" action="{{ route('register.store') }}" class="space-y-3">
+                <form method="POST"
+                      action="{{ route('register.store') }}"
+                      class="space-y-3"
+                      x-data="{
+                        showTerms: false,
+                        canAgree: false,
+                        termsPage: 1,
+                        termsAgreed: @json((bool) old('agree_terms')),
+                        isVerified: @json((bool) $isVerified),
+                        openTerms() {
+                          this.showTerms = true;
+                          // 스크롤 강제 없음: 버튼은 항상 활성화
+                          this.canAgree = true;
+                          this.termsPage = 1;
+                          this.$nextTick(() => {
+                            const el = this.$refs.termsScroll;
+                            if (el) el.scrollTop = 0;
+                          });
+                        },
+                        onScroll() {
+                          // no-op (스크롤 조건 제거)
+                        },
+                        nextPage() {
+                          if (this.termsPage < 3) {
+                            this.termsPage += 1;
+                            this.canAgree = true;
+                            this.$nextTick(() => {
+                              const el = this.$refs.termsScroll;
+                              if (el) el.scrollTop = 0;
+                            });
+                          }
+                        },
+                        agree() {
+                          if (this.termsPage !== 3) return;
+                          this.termsAgreed = true;
+                          this.showTerms = false;
+                        },
+                        cancel() {
+                          this.showTerms = false;
+                        }
+                      }"
+                      x-init="$watch('showTerms', v => { document.body.style.overflow = v ? 'hidden' : ''; })">
                     @csrf
 
                     <div>
@@ -151,13 +192,189 @@
                         />
                     </div>
 
+                    <!-- 필수 동의 -->
+                    <div class="pt-2">
+                        <div class="flex items-start gap-3">
+                            <input type="checkbox"
+                                   class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                   :checked="termsAgreed"
+                                   @click.prevent="openTerms()"
+                                   aria-label="이용약관 및 개인정보 처리방침 동의" />
+
+                            <div class="min-w-0">
+                                <button type="button"
+                                        class="text-left text-sm text-gray-700 hover:underline"
+                                        @click="openTerms()">
+                                    <span class="font-semibold">[필수]</span> 이용약관 및 개인정보 처리방침 동의
+                                </button>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    체크 시 약관이 열리며, 3페이지까지 확인 후 동의할 수 있습니다.
+                                </div>
+                            </div>
+                        </div>
+
+                        <template x-if="termsAgreed">
+                            <input type="hidden" name="agree_terms" value="1" />
+                        </template>
+                    </div>
+
                     <button
                         type="submit"
-                        @disabled(!($verifiedEmail && $verifiedEmail === old('email')))
-                        class="w-full px-4 py-3 rounded-lg font-medium transition-colors duration-200 {{ ($verifiedEmail && $verifiedEmail === old('email')) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}"
+                        :disabled="!isVerified || !termsAgreed"
+                        :class="(!isVerified || !termsAgreed)
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'"
+                        class="w-full px-4 py-3 rounded-lg font-medium transition-colors duration-200"
                     >
                         회원가입
                     </button>
+
+                    <!-- Terms Modal -->
+                    <div x-show="showTerms"
+                         x-cloak
+                         style="display: none;"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0"
+                         x-transition:enter-end="opacity-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                         @click.self="cancel()">
+
+                        <div class="bg-gray-50 rounded-2xl w-full max-w-md overflow-hidden border border-gray-200"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 translate-y-2"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-2">
+
+                            <div class="px-5 py-4 border-b bg-gray-50">
+                                <div class="flex items-center justify-between gap-3">
+                                    <h3 class="text-lg font-bold text-gray-900">이용약관 및 개인정보 처리방침</h3>
+                                    <button type="button"
+                                            class="text-gray-500 hover:text-gray-700"
+                                            @click="cancel()">
+                                        닫기
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="px-5 py-4">
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                    <div>현재: <span class="font-semibold" x-text="termsPage"></span>/3</div>
+                                </div>
+                                <div class="border rounded-xl bg-white p-4 max-h-[60vh] overflow-y-auto text-sm text-gray-700 leading-relaxed"
+                                     x-ref="termsScroll"
+                                     @scroll.passive="onScroll()">
+                                    <div class="space-y-3">
+                                        <!-- Page 1 -->
+                                        <template x-if="termsPage === 1">
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <div class="font-semibold">1. 서비스 개요</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        Remit은 학과 공용 스터디룸 예약 및 관리를 위한 서비스입니다. 본 약관에 동의해야 회원가입 및 서비스 이용이 가능합니다.
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div class="font-semibold">2. 계정 및 이용</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 가천대학교 이메일(@gachon.ac.kr) 기반으로 계정을 생성/관리합니다.<br>
+                                                        - 이용자는 본인의 계정 정보를 안전하게 관리해야 합니다.<br>
+                                                    </div>
+                                                </div>
+
+                                                <div class="text-gray-500 text-xs pt-2">
+                                                    다음 버튼을 눌러 계속 진행할 수 있습니다.
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Page 2 -->
+                                        <template x-if="termsPage === 2">
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <div class="font-semibold">3. 수집하는 개인정보 항목</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 필수: 이름, 학번, 이메일, 비밀번호(암호화 저장)<br>
+                                                        - 이용기록: 예약 내역(시간/좌석), 접속/사용 기록(서비스 운영 목적)<br>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div class="font-semibold">4. 개인정보 이용 목적</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 본인 확인 및 계정 관리<br>
+                                                        - 예약 생성/조회/취소 및 서비스 운영<br>
+                                                        - 부정 이용 방지 및 서비스 안정성 확보<br>
+                                                    </div>
+                                                </div>
+
+                                                <div class="text-gray-500 text-xs pt-2">
+                                                    다음 버튼을 눌러 계속 진행할 수 있습니다.
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Page 3 -->
+                                        <template x-if="termsPage === 3">
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <div class="font-semibold">5. 보관 및 파기</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 예약 내역은 서비스 정책에 따라 최근 1달치만 보관되며, 기간이 경과하면 자동으로 삭제될 수 있습니다.<br>
+                                                        - 관련 법령 또는 분쟁 대응 등 정당한 사유가 있는 경우 일부 정보가 추가 보관될 수 있습니다.<br>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div class="font-semibold">6. 이용자 의무 및 문의</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 타인의 정보를 도용하거나 서비스 운영을 방해하는 행위를 금지합니다.<br>
+                                                        - 예약은 공용 자원의 원활한 이용을 위해 신중히 생성/취소해야 합니다.<br>
+                                                        - 문의는 관리자에게 연락해 주세요.<br>
+                                                    </div>
+                                                </div>
+
+                                                <div class="text-gray-500 text-xs pt-2">
+                                                    내용을 확인하신 후 동의 버튼을 눌러주세요.
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-5 py-4 border-t bg-gray-50 flex gap-3">
+                                <button type="button"
+                                        class="flex-1 py-3 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300"
+                                        @click="cancel()">
+                                    취소
+                                </button>
+
+                                <!-- Page 1~2: Next -->
+                                <template x-if="termsPage < 3">
+                                    <button type="button"
+                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white"
+                                            @click="nextPage()">
+                                        다음
+                                    </button>
+                                </template>
+
+                                <!-- Page 3: Agree -->
+                                <template x-if="termsPage === 3">
+                                    <button type="button"
+                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white"
+                                            @click="agree()">
+                                        동의
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </form>
 
                 <div class="mt-4 text-center text-sm text-gray-600">

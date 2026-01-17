@@ -201,6 +201,7 @@ class AuthController extends Controller
             'student_id' => ['required', 'string', 'max:20', 'regex:/^\d+$/'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:4', 'max:12', 'confirmed'],
+            'agree_terms' => ['required', 'accepted'],
         ]);
 
         $validated['email'] = AllowedEmail::normalize($validated['email']);
@@ -248,6 +249,7 @@ class AuthController extends Controller
         $user->role = $user->role ?: 'user';
         $user->warning = $user->warning ?? 0;
         $user->email_verified_at = now();
+        $user->terms_agreed_at = $user->terms_agreed_at ?: now('Asia/Seoul');
         $user->save();
 
         // 인증코드 기록 정리 및 세션 정리
