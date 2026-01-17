@@ -347,6 +347,9 @@ QUEUE_CONNECTION=database
 ```env
 # 특정 키워드가 포함된 사용자만 허용 (예: "철학과")
 ALLOWED_USER_FILTER=
+
+# 로그인/회원가입 화면에 노출되는 "사용법(영상)"(유튜브) 링크
+HELP_VIDEO_URL=
 ```
 
 ---

@@ -90,6 +90,17 @@
                     <a href="{{ route('register') }}" class="text-blue-600 hover:underline">회원가입</a>
                 </div>
 
+                @if(config('help.video_url'))
+                    <div class="mt-3 text-center text-sm">
+                        <a href="{{ config('help.video_url') }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-blue-500 hover:text-white transition-colors">
+                            사용법 보기
+                        </a>
+                    </div>
+                @endif
+
                 <!-- Success Message -->
                 @if(session('success'))
                     <div class="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
