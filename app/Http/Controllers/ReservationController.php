@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\Seat;
 use App\Models\User;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
@@ -12,6 +13,117 @@ use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
+    private function getOrCreateDefaultRoom(): Room
+    {
+        // 기본 방 (가천관 622호) 가져오기 (레거시 데이터 '622호'도 허용)
+        // 다른 PC/환경에서 seed가 안 되어 rooms 테이블이 비어있을 수 있으므로, 없으면 자동 생성
+        $room = Room::whereIn('name', ['가천관 622호', '622호'])->first();
+        if (!$room) {
+            $room = Room::updateOrCreate(
+                ['name' => '가천관 622호'],
+                ['description' => '학과 공용 스터디룸']
+            );
+        }
+
+        return $room;
+    }
+
+    private function ensureSeats(Room $room): void
+    {
+        $count = (int) config('reservation.default_seat_count', 5);
+        if ($count < 1) {
+            $count = 1;
+        }
+        $max = (int) config('reservation.max_seat_count', 5);
+        if ($max > 0) {
+            $count = min($count, $max);
+        }
+
+        // 1~count 생성/활성화
+        for ($i = 1; $i <= $count; $i++) {
+            Seat::updateOrCreate(
+                [
+                    'room_id' => $room->id,
+                    'label' => "{$i}번",
+                ],
+                [
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        // count 초과 좌석은 비활성화 (최대 5개 보장)
+        Seat::where('room_id', $room->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($count) {
+                for ($i = $count + 1; $i <= 50; $i++) {
+                    $q->orWhere('label', "{$i}번");
+                }
+            })
+            ->update(['is_active' => false]);
+    }
+
+    public function availableSeats(Request $request)
+    {
+        $segmentsRaw = $request->input('segments');
+        $segments = json_decode($segmentsRaw, true);
+
+        if (!is_array($segments) || empty($segments)) {
+            return response()->json(['message' => '예약 시간이 올바르지 않습니다.'], 422);
+        }
+
+        foreach ($segments as $seg) {
+            if (!is_array($seg) || empty($seg['start_at']) || empty($seg['end_at'])) {
+                return response()->json(['message' => '예약 시간이 올바르지 않습니다.'], 422);
+            }
+            if (!strtotime($seg['start_at']) || !strtotime($seg['end_at'])) {
+                return response()->json(['message' => '예약 시간이 올바르지 않습니다.'], 422);
+            }
+        }
+
+        $room = $this->getOrCreateDefaultRoom();
+        $this->ensureSeats($room);
+
+        $activeSeats = Seat::where('room_id', $room->id)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get(['id', 'label']);
+
+        // OR 조건으로 "어느 구간이든 겹치면 예약된 좌석"으로 처리
+        $reservedSeatIds = Reservation::where('room_id', $room->id)
+            ->where('status', 'confirmed')
+            ->whereNotNull('seat_id')
+            ->where(function ($q) use ($segments) {
+                foreach ($segments as $seg) {
+                    $startStr = (new \DateTime($seg['start_at']))->format('Y-m-d\TH:i:s');
+                    $endStr = (new \DateTime($seg['end_at']))->format('Y-m-d\TH:i:s');
+                    $q->orWhere(function ($qq) use ($startStr, $endStr) {
+                        $qq->where('start_at', '<', $endStr)
+                            ->where('end_at', '>', $startStr);
+                    });
+                }
+            })
+            ->distinct()
+            ->pluck('seat_id')
+            ->all();
+
+        $seats = $activeSeats->map(function ($s) use ($reservedSeatIds) {
+            return [
+                'id' => $s->id,
+                'label' => $s->label,
+                'is_available' => !in_array($s->id, $reservedSeatIds, true),
+            ];
+        })->values();
+        $availableSeatsCount = $seats->where('is_available', true)->count();
+
+        return response()->json([
+            'room_id' => $room->id,
+            'total_seats' => $activeSeats->count(),
+            'available_seats_count' => $availableSeatsCount,
+            'seats' => $seats,
+        ]);
+    }
+
     /**
      * Display reservation form and list
      */
@@ -51,6 +163,12 @@ class ReservationController extends Controller
      */
     public function store(Request $request)
     {
+        $seatIdRaw = $request->input('seat_id');
+        if (empty($seatIdRaw) || !ctype_digit((string) $seatIdRaw)) {
+            return back()->withErrors(['seat_id' => '좌석을 선택해주세요.']);
+        }
+        $seatId = (int) $seatIdRaw;
+
         // 신규: segments(JSON)로 여러 구간 예약 지원
         if ($request->filled('segments')) {
             $segmentsRaw = $request->input('segments');
@@ -171,14 +289,18 @@ class ReservationController extends Controller
                 return back()->withErrors(['start_at' => '하루에 최대 4시간까지만 예약할 수 있습니다. (현재 예약: ' . ($totalHours - $newTotalHours) . '시간)']);
             }
 
-            // 기본 방 (가천관 622호) 가져오기 (레거시 데이터 '622호'도 허용)
-            // 다른 PC/환경에서 seed가 안 되어 rooms 테이블이 비어있을 수 있으므로, 없으면 자동 생성
-            $room = Room::whereIn('name', ['가천관 622호', '622호'])->first();
-            if (!$room) {
-                $room = Room::updateOrCreate(
-                    ['name' => '가천관 622호'],
-                    ['description' => '학과 공용 스터디룸']
-                );
+            $room = $this->getOrCreateDefaultRoom();
+            $this->ensureSeats($room);
+
+            $seat = Seat::where('id', $seatId)
+                ->where('room_id', $room->id)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$seat) {
+                DB::rollBack();
+                return back()->withErrors(['seat_id' => '선택한 좌석이 올바르지 않습니다.']);
             }
 
             $createdIds = [];
@@ -187,8 +309,9 @@ class ReservationController extends Controller
                 $startStr = $seg['start_at']->format('Y-m-d\TH:i:s');
                 $endStr = $seg['end_at']->format('Y-m-d\TH:i:s');
 
-                // 중복 예약 확인 (동시성 제어)
+                // 중복 예약 확인 (동시성 제어) - 같은 좌석에서만 겹침 금지
                 $overlapping = Reservation::where('room_id', $room->id)
+                    ->where('seat_id', $seat->id)
                     ->where('status', 'confirmed')
                     ->where('start_at', '<', $endStr)
                     ->where('end_at', '>', $startStr)
@@ -197,11 +320,12 @@ class ReservationController extends Controller
 
                 if ($overlapping) {
                     DB::rollBack();
-                    return back()->withErrors(['start_at' => '이미 그 시간대에 예약이 있습니다.']);
+                    return back()->withErrors(['seat_id' => '선택한 좌석은 이미 해당 시간대에 예약되어 있습니다.']);
                 }
 
                 $reservation = Reservation::create([
                     'room_id' => $room->id,
+                    'seat_id' => $seat->id,
                     'start_at' => $startStr,
                     'end_at' => $endStr,
                     'key_code' => $this->generateKeyCode(),
@@ -236,7 +360,7 @@ class ReservationController extends Controller
      */
     public function confirm($id)
     {
-        $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
+        $reservation = Reservation::with(['room', 'seat', 'users'])->findOrFail($id);
         
         // 읽지 않은 알림 수 가져오기
         $user = Auth::user();
@@ -266,7 +390,7 @@ class ReservationController extends Controller
         // 읽지 않은 알림 수 가져오기
         $unreadCount = $user->notifications()->whereNull('read_at')->count();
 
-        $reservations = Reservation::with(['room', 'users'])
+        $reservations = Reservation::with(['room', 'seat', 'users'])
             ->whereIn('id', $ids)
             ->whereHas('users', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
@@ -288,7 +412,7 @@ class ReservationController extends Controller
      */
     public function detail($id)
     {
-        $reservation = Reservation::with(['room', 'users'])->findOrFail($id);
+        $reservation = Reservation::with(['room', 'seat', 'users'])->findOrFail($id);
         return view('reservation.detail', compact('reservation'));
     }
 
@@ -312,7 +436,7 @@ class ReservationController extends Controller
         $reservations = collect();
         if ($user) {
             $reservations = $user->reservations()
-                ->with(['room', 'users'])
+                ->with(['room', 'seat', 'users'])
                 ->where('status', 'confirmed')
                 ->orderBy('start_at', 'desc')
                 ->get();
@@ -329,6 +453,7 @@ class ReservationController extends Controller
                 'date' => $r->start_at->format('Y-m-d'),
                 'time' => ($r->start_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->start_at->format('g:i') . ' - ' . ($r->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->end_at->format('g:i'),
                 'room_name' => $r->room->name,
+                'seat_label' => $r->seat?->label,
                 'status' => $r->status,
                 'status_text' => $statusText,
                 'start_at' => $r->start_at->toIso8601String(),

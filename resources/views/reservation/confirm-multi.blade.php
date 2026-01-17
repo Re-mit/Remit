@@ -60,7 +60,7 @@
                                 {{ ($reservation->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $reservation->end_at->format('g:i') }}
                             </p>
                         </div>
-                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-blue-500 text-blue-500">
+                        <span class="nowrap text-nowrap whitespace-nowrap inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border border-blue-500 text-blue-500">
                             예약완료
                         </span>
                     </div>
@@ -70,6 +70,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         <p class="text-lg font-semibold text-gray-900">{{ $reservation->room->name }}</p>
+                    </div>
+                    <div class="mt-3">
+                        <p class="text-sm text-gray-600 mb-1">좌석</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ $reservation->seat?->label ?? '미지정' }}</p>
                     </div>
                 </div>
             @endforeach

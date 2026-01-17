@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Reservation;
+use App\Models\Seat;
 
 class Room extends Model
 {
@@ -18,5 +19,10 @@ class Room extends Model
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public function seats()
+    {
+        return $this->hasMany(Seat::class);
     }
 }

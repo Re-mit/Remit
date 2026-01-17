@@ -129,6 +129,7 @@
                                 <div class="h-6 w-1 bg-gray-700 rounded-full mr-2"></div>
                                 <div class="flex items-center">
                                     <span class="text-sm text-gray-600 mr-3" x-text="reservation.time"></span>
+                                    <span class="text-sm text-gray-500 mr-3" x-show="reservation.seat_label" x-text="`좌석 ${reservation.seat_label}`"></span>
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold" 
                                           :class="reservation.status === 'confirmed' ? 'border border-blue-500 text-blue-500' : 'border border-gray-400 text-gray-500'"
                                           x-text="reservation.status_text"></span>

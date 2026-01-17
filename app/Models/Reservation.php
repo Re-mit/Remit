@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Seat;
 
 class Reservation extends Model
 {
@@ -11,6 +12,7 @@ class Reservation extends Model
 
     protected $fillable = [
         'room_id',
+        'seat_id',
         'start_at',
         'end_at',
         'key_code',
@@ -32,6 +34,11 @@ class Reservation extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function seat()
+    {
+        return $this->belongsTo(Seat::class);
     }
 
     public function users()

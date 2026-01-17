@@ -108,7 +108,7 @@
                     </clipPath>
                     </defs>
                     </svg>
-                    <p class="text-xs text-gray-600 mt-1">최대 4시간까지 선택 가능 (연속/비연속)</p>
+                    <p class="text-xs text-gray-600 mt-1">최대 4시간까지 선택 가능</p>
                 </div>
             </div>
             
@@ -118,11 +118,11 @@
                         @click="toggleTimeSlot(slot)"
                         class="py-3 px-2 rounded-xl text-sm font-medium transition-all border-2"
                         :class="{
-                            'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': slot.isReserved || slot.isPast,
-                            'bg-blue-500 text-white border-blue-500': isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast,
-                            'bg-white text-gray-700 border-gray-200 hover:border-blue-300': !isTimeSelected(slot.time) && !slot.isReserved && !slot.isPast
+                            'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': slot.isPast,
+                            'bg-blue-500 text-white border-blue-500': isTimeSelected(slot.time) && !slot.isPast,
+                            'bg-white text-gray-700 border-gray-200 hover:border-blue-300': !isTimeSelected(slot.time) && !slot.isPast
                         }"
-                        :disabled="slot.isReserved || slot.isPast"
+                        :disabled="slot.isPast"
                     >
                         <span x-text="slot.time"></span>
                     </button>
@@ -144,20 +144,70 @@
         </div>
     </div>
 
+    <!-- Seat Selection -->
+    <div class="px-4" x-show="selectedTimes.length > 0" x-transition>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-4 py-4 px-2">
+            <div class="p-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900">좌석 선택</h2>
+                    <p class="text-xs text-gray-500" x-show="!loadingSeats && totalSeats > 0">
+                        잔여 <span class="font-semibold text-gray-700" x-text="availableSeatsCount"></span> / <span x-text="totalSeats"></span>
+                    </p>
+                </div>
+
+                <div class="mt-2" x-show="loadingSeats">
+                    <p class="text-sm text-gray-500">좌석 정보를 불러오는 중...</p>
+                </div>
+
+                <div class="mt-2" x-show="!loadingSeats && selectedTimes.length > 0 && availableSeatsCount === 0">
+                    <p class="text-sm text-red-600">해당 시간대는 만석입니다. 다른 시간을 선택해주세요.</p>
+                </div>
+
+                <!-- 5좌석 코너 배치 (좌상/우상/가운데/좌하/우하) -->
+                <div class="mt-4 grid grid-cols-3 gap-4 w-fit mx-auto" x-show="!loadingSeats && totalSeats > 0">
+                    <template x-for="(cell, idx) in seatCells" :key="idx">
+                        <div class="w-16 h-10 flex items-center justify-center">
+                            <template x-if="cell">
+                                <button
+                                    type="button"
+                                    @click="cell.is_available && selectSeat(cell.id)"
+                                    class="w-full h-full rounded-lg text-sm font-semibold transition-all border-2 overflow-hidden"
+                                    :disabled="!cell.is_available"
+                                    :class="{
+                                        'bg-blue-500 text-white border-blue-500': selectedSeatId === cell.id,
+                                        'bg-white text-gray-700 border-gray-200 hover:border-blue-300': selectedSeatId !== cell.id && cell.is_available,
+                                        'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': !cell.is_available
+                                    }"
+                                >
+                                    <div class="w-4 h-16 flex flex-col">
+                                        <div class="flex-1 flex items-center justify-center">
+                                            <span x-text="cell.label"></span>
+                                        </div>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Reserve Button -->
     <div class="px-4 pb-6">
         <form method="POST" action="{{ route('reservation.store') }}" x-ref="reservationForm">
             @csrf
             <input type="hidden" name="segments" :value="getSegmentsJson()">
+            <input type="hidden" name="seat_id" :value="selectedSeatId">
             
             <button 
                 type="submit"
                 class="w-full py-4 rounded-xl font-semibold text-lg transition-all shadow-lg"
                 :class="{
-                    'bg-blue-500 text-white hover:bg-blue-600': selectedTimes.length > 0,
-                    'bg-gray-200 text-gray-400 cursor-not-allowed': selectedTimes.length === 0
+                    'bg-blue-500 text-white hover:bg-blue-600': selectedTimes.length > 0 && !!selectedSeatId && !loadingSeats && availableSeatsCount > 0,
+                    'bg-gray-200 text-gray-400 cursor-not-allowed': selectedTimes.length === 0 || !selectedSeatId || loadingSeats || availableSeatsCount === 0
                 }"
-                :disabled="selectedTimes.length === 0"
+                :disabled="selectedTimes.length === 0 || !selectedSeatId || loadingSeats || availableSeatsCount === 0"
             >
                 예약하기
             </button>
@@ -215,6 +265,20 @@ function reservationApp() {
         currentYear: new Date().getFullYear(),
         selectedDate: new Date(),
         selectedTimes: [],
+        seats: [],
+        availableSeatsCount: 0,
+        totalSeats: 0,
+        selectedSeatId: null,
+        loadingSeats: false,
+        get seatCells() {
+            // 3x3: [좌상,_,우상]/[_,가운데,_]/[좌하,_,우하]
+            const order = [0, null, 1, null, 2, null, 3, null, 4];
+            const arr = [];
+            for (const idx of order) {
+                arr.push(idx === null ? null : (this.seats[idx] || null));
+            }
+            return arr;
+        },
         
         get currentMonthYear() {
             return `${this.currentYear}년 ${this.currentMonth + 1}월`;
@@ -263,9 +327,8 @@ function reservationApp() {
             
             for (let hour = 9; hour <= 21; hour++) {
                 const time = `${hour.toString().padStart(2, '0')}:00`;
-                const isReserved = this.isTimeReserved(selectedDateStr, time);
                 const isPast = isToday && hour <= currentHour;
-                slots.push({ time, isReserved, isPast });
+                slots.push({ time, isPast });
             }
             return slots;
         },
@@ -292,6 +355,7 @@ function reservationApp() {
             if (this.isSelectable(date)) {
                 this.selectedDate = date;
                 this.selectedTimes = [];
+                this.resetSeats();
             }
         },
         
@@ -307,18 +371,8 @@ function reservationApp() {
             return date >= today && date <= oneWeek;
         },
         
-        isTimeReserved(dateStr, time) {
-            const hour = parseInt(time.split(':')[0]);
-            return existingReservations.some(r => {
-                if (r.date !== dateStr) return false;
-                const startHour = parseInt(r.start.split(':')[0]);
-                const endHour = parseInt(r.end.split(':')[0]);
-                return hour >= startHour && hour < endHour;
-            });
-        },
-        
         toggleTimeSlot(slot) {
-            if (slot.isReserved || slot.isPast) return;
+            if (slot.isPast) return;
             
             const index = this.selectedTimes.indexOf(slot.time);
             if (index > -1) {
@@ -330,6 +384,7 @@ function reservationApp() {
                 this.selectedTimes.push(slot.time);
             }
             this.selectedTimes.sort();
+            this.refreshAvailableSeats();
         },
         
         isTimeSelected(time) {
@@ -345,6 +400,19 @@ function reservationApp() {
         
         clearSelection() {
             this.selectedTimes = [];
+            this.resetSeats();
+        },
+
+        resetSeats() {
+            this.seats = [];
+            this.availableSeatsCount = 0;
+            this.totalSeats = 0;
+            this.selectedSeatId = null;
+            this.loadingSeats = false;
+        },
+
+        selectSeat(seatId) {
+            this.selectedSeatId = seatId;
         },
         
         formatDate(date) {
@@ -392,6 +460,50 @@ function reservationApp() {
         getSegmentsJson() {
             const segments = this.getSegments().map(s => ({ start_at: s.start_at, end_at: s.end_at }));
             return JSON.stringify(segments);
+        },
+
+        async refreshAvailableSeats() {
+            if (this.selectedTimes.length === 0) {
+                this.resetSeats();
+                return;
+            }
+
+            this.loadingSeats = true;
+
+            try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const res = await fetch("{{ route('reservation.available_seats') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                    },
+                    body: JSON.stringify({
+                        segments: this.getSegmentsJson(),
+                    }),
+                });
+
+                if (!res.ok) {
+                    this.resetSeats();
+                    return;
+                }
+
+                const data = await res.json();
+                this.seats = data.seats || [];
+                this.availableSeatsCount = data.available_seats_count || 0;
+                this.totalSeats = data.total_seats || 0;
+
+                // 현재 선택 좌석이 더 이상 가능하지 않으면 해제
+                if (this.selectedSeatId) {
+                    const picked = this.seats.find(s => s.id === this.selectedSeatId);
+                    if (!picked || !picked.is_available) this.selectedSeatId = null;
+                }
+            } catch (e) {
+                this.resetSeats();
+            } finally {
+                this.loadingSeats = false;
+            }
         }
     }
 }
