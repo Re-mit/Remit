@@ -315,13 +315,56 @@ class AdminController extends Controller
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
 
-        $reservations = Reservation::with(['room', 'users'])
+        $reservations = Reservation::with(['room', 'seat', 'users'])
             ->where('status', 'confirmed')
             ->where('end_at', '>', now('Asia/Seoul'))
             ->orderBy('start_at')
             ->paginate(30);
 
         return view('admin.reservations', compact('unreadCount', 'reservations'));
+    }
+
+    /**
+     * 예약 내역 페이지 (최근 1달치: 완료/취소 내역 중심)
+     */
+    public function reservationsHistory(Request $request)
+    {
+        $this->authorizeAdmin();
+
+        $user = auth()->user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        $nowKst = now('Asia/Seoul');
+        $months = max(1, (int) config('reservation.retention_months', 1));
+        $cutoff = $nowKst->copy()->subMonthsNoOverflow($months)->startOfDay();
+
+        $status = $request->query('status', 'all'); // all | confirmed | cancelled
+        if (!in_array($status, ['all', 'confirmed', 'cancelled'], true)) {
+            $status = 'all';
+        }
+
+        $query = Reservation::with(['room', 'seat', 'users'])
+            ->where(function ($q) use ($cutoff, $nowKst) {
+                // 최근 N개월 내 "완료된 예약" (end_at 기준)
+                $q->whereBetween('end_at', [$cutoff, $nowKst])
+                    // 또는 최근 N개월 내 "취소된 예약" (cancelled_at 기준; end_at이 미래여도 포함)
+                    ->orWhere(function ($qq) use ($cutoff) {
+                        $qq->whereNotNull('cancelled_at')
+                            ->where('cancelled_at', '>=', $cutoff);
+                    });
+            })
+            ->orderByDesc('start_at');
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $reservations = $query->paginate(30)->withQueryString();
+
+        return view('admin.reservations-history', compact('unreadCount', 'reservations', 'cutoff', 'status'));
     }
 
     public function destroyReservation(Request $request, $id)
@@ -347,7 +390,7 @@ class AdminController extends Controller
             ]);
 
             // 예약 당사자(참여자)에게 알림 발송
-            $reservation->loadMissing(['users', 'room']);
+            $reservation->loadMissing(['users', 'room', 'seat']);
             $userIds = $reservation->users->pluck('id')->unique()->values();
             $now = now();
 
@@ -360,6 +403,7 @@ class AdminController extends Controller
                     : '';
 
                 $roomLabel = $reservation->room?->name ?? '예약';
+                $seatLabel = $reservation->seat?->label;
                 $reason = $validated['cancel_reason'];
 
                 $rows = [];
@@ -368,7 +412,7 @@ class AdminController extends Controller
                         'user_id' => $uid,
                         'type' => 'reservation_deleted',
                         'title' => '예약이 삭제되었습니다.',
-                        'message' => "{$roomLabel}\n{$timeLabel}\n삭제 사유: {$reason}",
+                        'message' => "{$roomLabel}" . ($seatLabel ? " ({$seatLabel})" : '') . "\n{$timeLabel}\n삭제 사유: {$reason}",
                         'read_at' => null,
                         'related_id' => $reservation->id,
                         'related_type' => Reservation::class,

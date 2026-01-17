@@ -51,6 +51,10 @@
                                 </div>
                                 <div class="mt-2 text-sm text-gray-700">
                                     <span class="font-semibold">{{ $r->room?->name ?? '-' }}</span>
+                                    @if($r->seat)
+                                        <span class="text-gray-400 mx-2">|</span>
+                                        <span class="font-semibold">{{ $r->seat->label }}</span>
+                                    @endif
                                     <span class="text-gray-400 mx-2">|</span>
                                     <span class="break-all">{{ $repLabel }}</span>
                                 </div>

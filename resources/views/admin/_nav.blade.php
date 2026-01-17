@@ -24,6 +24,10 @@
                class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.reservations') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">
                 예약 관리
             </a>
+            <a href="{{ route('admin.reservations.history') }}"
+               class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.reservations.history') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">
+                예약 내역(1달)
+            </a>
         </div>
         </div>
     </div>

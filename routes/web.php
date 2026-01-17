@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
     // 예약하기
     Route::get('/reservation', [ReservationController::class, 'index'])->name('reservation.index');
     Route::post('/reservation', [ReservationController::class, 'store'])->name('reservation.store');
+    Route::post('/reservation/available-seats', [ReservationController::class, 'availableSeats'])->name('reservation.available_seats');
     Route::get('/reservation/{id}/confirm', [ReservationController::class, 'confirm'])->name('reservation.confirm');
     Route::get('/reservation/confirm-multi', [ReservationController::class, 'confirmMulti'])->name('reservation.confirm_multi');
     Route::get('/reservation/{id}/detail', [ReservationController::class, 'detail'])->name('reservation.detail');
@@ -90,6 +91,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/notices/{id}', [AdminController::class, 'destroyNotice'])->name('admin.notices.destroy');
 
         Route::get('/reservations', [AdminController::class, 'reservations'])->name('admin.reservations');
+        Route::get('/reservations/history', [AdminController::class, 'reservationsHistory'])->name('admin.reservations.history');
         Route::delete('/reservations/{id}', [AdminController::class, 'destroyReservation'])->name('admin.reservations.destroy');
     });
 });

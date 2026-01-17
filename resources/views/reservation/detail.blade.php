@@ -65,7 +65,7 @@
                     <p class="text-sm text-gray-600 mb-1">예약 날짜</p>
                     <p class="text-lg font-semibold text-gray-900">{{ $reservation->start_at->format('Y년 m월 d일') }}</p>
                 </div>
-                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold {{ $reservation->status === 'confirmed' ? 'border border-blue-500 text-blue-500' : 'border border-gray-400 text-gray-500' }}">
+                <span class="nowrap text-nowrap whitespace-nowrap inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold {{ $reservation->status === 'confirmed' ? 'border border-blue-500 text-blue-500' : 'border border-gray-400 text-gray-500' }}">
                     {{ $reservation->status === 'confirmed' ? '예약완료' : '취소됨' }}
                 </span>
             </div>
@@ -85,6 +85,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <p class="text-lg font-semibold text-gray-900">{{ $reservation->room->name }}</p>
+            </div>
+
+            <!-- Seat -->
+            <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-1">좌석</p>
+                <p class="text-lg font-semibold text-gray-900">{{ $reservation->seat?->label ?? '미지정' }}</p>
             </div>
 
             <!-- Cancel Button -->
