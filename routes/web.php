@@ -3,6 +3,8 @@
 
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\Mypage\InquiryController;
@@ -39,6 +41,17 @@ Route::middleware('guest')->group(function () {
     Route::post('/register/send-code', [AuthController::class, 'sendRegisterCode'])->name('register.send_code');
     Route::post('/register/verify-code', [AuthController::class, 'verifyRegisterCode'])->name('register.verify_code');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+
+    // Password Reset (표준 Password Broker)
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
