@@ -325,10 +325,6 @@
                                                         <span class="font-semibold">사전 안내 후 서비스가 종료될 수 있습니다.</span>
                                                     </div>
                                                 </div>
-
-                                                <div class="text-gray-500 text-xs pt-2">
-                                                    내용을 확인한 뒤, 끝까지 스크롤하면 다음 버튼이 활성화됩니다.
-                                                </div>
                                             </div>
                                         </template>
 
