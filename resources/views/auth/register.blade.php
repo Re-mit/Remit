@@ -41,35 +41,48 @@
                       class="space-y-3"
                       x-data="{
                         showTerms: false,
-                        canAgree: false,
+                        canProceed: false,
                         termsPage: 1,
                         termsAgreed: @json((bool) old('agree_terms')),
                         isVerified: @json((bool) $isVerified),
+                        updateCanProceed() {
+                          const el = this.$refs.termsScroll;
+                          if (!el) return;
+                          // 내용이 짧아 스크롤이 필요 없으면 즉시 진행 가능
+                          if (el.scrollHeight <= el.clientHeight + 2) {
+                            this.canProceed = true;
+                            return;
+                          }
+                          this.canProceed = (el.scrollTop + el.clientHeight) >= (el.scrollHeight - 8);
+                        },
                         openTerms() {
                           this.showTerms = true;
-                          // 스크롤 강제 없음: 버튼은 항상 활성화
-                          this.canAgree = true;
+                          this.canProceed = false;
                           this.termsPage = 1;
                           this.$nextTick(() => {
                             const el = this.$refs.termsScroll;
                             if (el) el.scrollTop = 0;
+                            this.updateCanProceed();
                           });
                         },
                         onScroll() {
-                          // no-op (스크롤 조건 제거)
+                          this.updateCanProceed();
                         },
                         nextPage() {
-                          if (this.termsPage < 3) {
+                          if (!this.canProceed) return;
+                          if (this.termsPage < 5) {
                             this.termsPage += 1;
-                            this.canAgree = true;
+                            this.canProceed = false;
                             this.$nextTick(() => {
                               const el = this.$refs.termsScroll;
                               if (el) el.scrollTop = 0;
+                              this.updateCanProceed();
                             });
                           }
                         },
                         agree() {
-                          if (this.termsPage !== 3) return;
+                          if (this.termsPage !== 5) return;
+                          if (!this.canProceed) return;
                           this.termsAgreed = true;
                           this.showTerms = false;
                         },
@@ -208,7 +221,7 @@
                                     <span class="font-semibold">[필수]</span> 이용약관 및 개인정보 처리방침 동의
                                 </button>
                                 <div class="text-xs text-gray-500 mt-1">
-                                    체크 시 약관이 열리며, 3페이지까지 확인 후 동의할 수 있습니다.
+                                    체크 시 약관이 열리며, 각 페이지를 끝까지 스크롤해야 다음/동의가 가능합니다.
                                 </div>
                             </div>
                         </div>
@@ -263,7 +276,8 @@
 
                             <div class="px-5 py-4">
                                 <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
-                                    <div>현재: <span class="font-semibold" x-text="termsPage"></span>/3</div>
+                                    <div>현재: <span class="font-semibold" x-text="termsPage"></span>/5</div>
+                                    <div x-show="!canProceed" class="text-gray-500">끝까지 스크롤해 주세요</div>
                                 </div>
                                 <div class="border rounded-xl bg-white p-4 max-h-[60vh] overflow-y-auto text-sm text-gray-700 leading-relaxed"
                                      x-ref="termsScroll"
@@ -288,7 +302,7 @@
                                                 </div>
 
                                                 <div class="text-gray-500 text-xs pt-2">
-                                                    다음 버튼을 눌러 계속 진행할 수 있습니다.
+                                                    내용을 확인한 뒤, 끝까지 스크롤하면 다음 버튼이 활성화됩니다.
                                                 </div>
                                             </div>
                                         </template>
@@ -297,24 +311,23 @@
                                         <template x-if="termsPage === 2">
                                             <div class="space-y-3">
                                                 <div>
-                                                    <div class="font-semibold">3. 수집하는 개인정보 항목</div>
+                                                    <div class="font-semibold">3. 공용 공간 이용 수칙(민폐 금지)</div>
                                                     <div class="text-gray-600 mt-1">
-                                                        - 필수: 이름, 학번, 이메일, 비밀번호(암호화 저장)<br>
-                                                        - 이용기록: 예약 내역(시간/좌석), 접속/사용 기록(서비스 운영 목적)<br>
+                                                        - 모두가 이용하는 공간이니 서로 배려하고, 타인에게 민폐가 되는 행위(소란, 무단 점유, 규칙 위반 등)를 금지합니다.<br>
+                                                        - 운영 및 안전을 위해 필요한 경우, 운영진 안내에 협조해야 합니다.<br>
                                                     </div>
                                                 </div>
 
-                                                <div>
-                                                    <div class="font-semibold">4. 개인정보 이용 목적</div>
-                                                    <div class="text-gray-600 mt-1">
-                                                        - 본인 확인 및 계정 관리<br>
-                                                        - 예약 생성/조회/취소 및 서비스 운영<br>
-                                                        - 부정 이용 방지 및 서비스 안정성 확보<br>
+                                                <div class="rounded-xl border border-red-200 bg-red-50 p-3">
+                                                    <div class="font-semibold text-red-700">[중요] 도난/분실 등 문제 발생 시</div>
+                                                    <div class="text-red-700 mt-1">
+                                                        도난, 분실, 안전사고 등 문제가 반복되거나 운영이 어렵다고 판단되는 경우,
+                                                        <span class="font-semibold">사전 안내 후 서비스가 종료될 수 있습니다.</span>
                                                     </div>
                                                 </div>
 
                                                 <div class="text-gray-500 text-xs pt-2">
-                                                    다음 버튼을 눌러 계속 진행할 수 있습니다.
+                                                    내용을 확인한 뒤, 끝까지 스크롤하면 다음 버튼이 활성화됩니다.
                                                 </div>
                                             </div>
                                         </template>
@@ -323,24 +336,75 @@
                                         <template x-if="termsPage === 3">
                                             <div class="space-y-3">
                                                 <div>
-                                                    <div class="font-semibold">5. 보관 및 파기</div>
+                                                    <div class="font-semibold">4. 수집하는 개인정보 항목</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 필수: 이름, 학번, 이메일, 비밀번호(암호화 저장)<br>
+                                                        - 이용기록: 예약 내역(시간/좌석), 접속/사용 기록(서비스 운영 목적)<br>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div class="font-semibold">5. 개인정보 이용 목적</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 본인 확인 및 계정 관리<br>
+                                                        - 예약 생성/조회/취소 및 서비스 운영<br>
+                                                        - 부정 이용 방지 및 서비스 안정성 확보<br>
+                                                    </div>
+                                                </div>
+
+                                                <div class="text-gray-500 text-xs pt-2">
+                                                    내용을 확인한 뒤, 끝까지 스크롤하면 다음 버튼이 활성화됩니다.
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Page 4 -->
+                                        <template x-if="termsPage === 4">
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <div class="font-semibold">6. 기물 파손/이상 발생 시 즉시 문의</div>
+                                                    <div class="text-gray-600 mt-1">
+                                                        - 공간 내 기물(가구/장비/도어락/열쇠 등) 파손, 이상 징후, 분실이 발생하거나 발견한 경우 <span class="font-semibold">즉시 문의를 남겨야 합니다.</span><br>
+                                                        - <span class="font-semibold">문의 없이 방치하거나 고의로 은폐</span>하는 경우, 정황에 따라 <span class="font-semibold">책임을 물을 수 있습니다.</span><br>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div class="font-semibold">7. 보관 및 파기</div>
                                                     <div class="text-gray-600 mt-1">
                                                         - 예약 내역은 서비스 정책에 따라 최근 1달치만 보관되며, 기간이 경과하면 자동으로 삭제될 수 있습니다.<br>
                                                         - 관련 법령 또는 분쟁 대응 등 정당한 사유가 있는 경우 일부 정보가 추가 보관될 수 있습니다.<br>
                                                     </div>
                                                 </div>
 
+                                                <div class="text-gray-500 text-xs pt-2">
+                                                    내용을 확인한 뒤, 끝까지 스크롤하면 다음 버튼이 활성화됩니다.
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Page 5 -->
+                                        <template x-if="termsPage === 5">
+                                            <div class="space-y-3">
                                                 <div>
-                                                    <div class="font-semibold">6. 이용자 의무 및 문의</div>
+                                                    <div class="font-semibold">8. 마감(마지막 시간대) 이용자 의무</div>
                                                     <div class="text-gray-600 mt-1">
-                                                        - 타인의 정보를 도용하거나 서비스 운영을 방해하는 행위를 금지합니다.<br>
-                                                        - 예약은 공용 자원의 원활한 이용을 위해 신중히 생성/취소해야 합니다.<br>
+                                                        - 마지막 시간대 이용자는 퇴실 시 <span class="font-semibold">반드시 문/열쇠를 잠금 처리</span>해야 합니다.<br>
+                                                        - 잠금 미이행 등 안전에 영향을 주는 위반이 발생할 경우, 운영 및 보안 목적상 <span class="font-semibold">이용 기록 기반으로 확인/추적</span>할 수 있습니다.<br>
                                                         - 문의는 관리자에게 연락해 주세요.<br>
                                                     </div>
                                                 </div>
 
+                                                <div class="rounded-xl border border-red-200 bg-red-50 p-3">
+                                                    <div class="font-semibold text-red-700">[중요] 쓰레기/정리 미준수</div>
+                                                    <div class="text-red-700 mt-1">
+                                                        이용 후 쓰레기는 반드시 수거/정리해야 합니다.
+                                                        청결/관리가 지속적으로 되지 않는 경우 <span class="font-semibold">사전 안내 후 서비스가 종료될 수 있습니다.</span>
+                                                    </div>
+                                                </div>
+
                                                 <div class="text-gray-500 text-xs pt-2">
-                                                    내용을 확인하신 후 동의 버튼을 눌러주세요.
+                                                    내용을 확인하신 후, 끝까지 스크롤하면 동의 버튼이 활성화됩니다.
                                                 </div>
                                             </div>
                                         </template>
@@ -355,19 +419,27 @@
                                     취소
                                 </button>
 
-                                <!-- Page 1~2: Next -->
-                                <template x-if="termsPage < 3">
+                                <!-- Page 1~4: Next -->
+                                <template x-if="termsPage < 5">
                                     <button type="button"
-                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white"
+                                            :disabled="!canProceed"
+                                            :class="!canProceed
+                                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                              : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'"
+                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors"
                                             @click="nextPage()">
                                         다음
                                     </button>
                                 </template>
 
-                                <!-- Page 3: Agree -->
-                                <template x-if="termsPage === 3">
+                                <!-- Page 5: Agree -->
+                                <template x-if="termsPage === 5">
                                     <button type="button"
-                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white"
+                                            :disabled="!canProceed"
+                                            :class="!canProceed
+                                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                              : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'"
+                                            class="flex-1 py-3 rounded-xl font-semibold transition-colors"
                                             @click="agree()">
                                         동의
                                     </button>
