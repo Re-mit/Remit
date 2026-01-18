@@ -307,10 +307,11 @@
                                         <template x-if="termsPage === 2">
                                             <div class="space-y-3">
                                                 <div>
-                                                    <div class="font-semibold">3. 공용 공간 이용 수칙(민폐 금지)</div>
+                                                    <div class="font-semibold">3. 공용 공간 이용 수칙</div>
                                                     <div class="text-gray-600 mt-1">
                                                         - 모두가 이용하는 공간이니 서로 배려하고, 타인에게 민폐가 되는 행위(소란, 무단 점유, 규칙 위반 등)를 금지합니다.<br>
                                                         - 운영 및 안전을 위해 필요한 경우, 운영진 안내에 협조해야 합니다.<br>
+                                                        - 시설 점검/보수, 학과 행사, 안전·보안 이슈, 긴급 상황 등 <span class="font-semibold">특정 사유</span>가 발생하는 경우, 운영상 필요에 따라 <span class="font-semibold">해당 일자의 예약이 취소될 수 있습니다.</span><br>
                                                     </div>
                                                 </div>
 
@@ -318,7 +319,7 @@
                                                     <div class="font-semibold text-red-700">[중요] 도난/분실 등 문제 발생 시</div>
                                                     <div class="text-red-700 mt-1">
                                                         도난, 분실, 안전사고 등 문제가 반복되거나 운영이 어렵다고 판단되는 경우,
-                                                        <span class="font-semibold">사전 안내 후 서비스가 종료될 수 있습니다.</span>
+                                                        <span class="font-semibold">서비스가 종료될 수 있습니다.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -330,7 +331,7 @@
                                                 <div>
                                                     <div class="font-semibold">4. 수집하는 개인정보 항목</div>
                                                     <div class="text-gray-600 mt-1">
-                                                        - 필수: 이름, 학번, 이메일, 비밀번호(암호화 저장)<br>
+                                                        - 필수: 이름, 학번, 이메일, 비밀번호(hash 저장)<br>
                                                         - 이용기록: 예약 내역(시간/좌석), 접속/사용 기록(서비스 운영 목적)<br>
                                                     </div>
                                                 </div>
@@ -360,8 +361,7 @@
                                                 <div>
                                                     <div class="font-semibold">7. 보관 및 파기</div>
                                                     <div class="text-gray-600 mt-1">
-                                                        - 예약 내역은 서비스 정책에 따라 최근 1달치만 보관되며, 기간이 경과하면 자동으로 삭제될 수 있습니다.<br>
-                                                        - 관련 법령 또는 분쟁 대응 등 정당한 사유가 있는 경우 일부 정보가 추가 보관될 수 있습니다.<br>
+                                                        - 예약 내역은 서비스 정책에 따라 최근 1달치만 보관되며, 기간이 경과하면 자동으로 삭제됩니다.<br>
                                                     </div>
                                                 </div>
                                             </div>
@@ -383,7 +383,7 @@
                                                     <div class="font-semibold text-red-700">[중요] 쓰레기/정리 미준수</div>
                                                     <div class="text-red-700 mt-1">
                                                         이용 후 쓰레기는 반드시 수거/정리해야 합니다.
-                                                        청결/관리가 지속적으로 되지 않는 경우 <span class="font-semibold">사전 안내 후 서비스가 종료될 수 있습니다.</span>
+                                                        청결/관리가 지속적으로 되지 않는 경우 <span class="font-semibold">서비스가 종료될 수 있습니다.</span>
                                                     </div>
                                                 </div>
                                             </div>
