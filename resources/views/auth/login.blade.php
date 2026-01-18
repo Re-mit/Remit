@@ -77,6 +77,12 @@
                         />
                     </div>
 
+                    <div class="text-right">
+                        <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:underline">
+                            비밀번호를 잊으셨나요?
+                        </a>
+                    </div>
+
                     <button
                         type="submit"
                         class="w-full px-4 py-3 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors duration-200"

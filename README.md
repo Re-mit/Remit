@@ -353,6 +353,10 @@ HELP_VIDEO_URL=
 
 # 문의하기 메일 수신자(관리자 이메일)
 ADMIN_CONTACT_EMAIL=
+
+# 비밀번호 재설정 링크에 사용되는 앱 URL (반드시 실제 접속 URL로 설정)
+# 예: http://localhost:8000
+APP_URL=
 ```
 
 ---
