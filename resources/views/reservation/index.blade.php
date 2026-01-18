@@ -179,9 +179,9 @@
                                         'bg-gray-100 text-gray-400 border-transparent cursor-not-allowed': !cell.is_available
                                     }"
                                 >
-                                    <div class="w-4 h-16 flex flex-col">
-                                        <div class="flex-1 flex items-center justify-center">
-                                            <span x-text="cell.label"></span>
+                                    <div class="w-full h-full flex flex-col items-center justify-center">
+                                        <div class="flex-1 flex items-center justify-center whitespace-nowrap text-xs w-full text-center text-nowrap h-full">
+                                            <span class="text-center" x-text="cell.label"></span>
                                         </div>
                                     </div>
                                 </button>
