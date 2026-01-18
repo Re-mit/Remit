@@ -43,6 +43,18 @@
     </div>
 
     <div class="px-4 py-6 space-y-6">
+        @if(session('success'))
+            <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <!-- 프로필 카드 -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="p-6">
@@ -83,6 +95,21 @@
                         </defs>
                         </svg>
                         <span class="ml-3 text-gray-900 font-medium">열쇠함 비밀번호</span>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </a>
+
+            <!-- 문의하기 버튼 -->
+            <a href="{{ route('mypage.inquiry.create') }}" class="block bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-6 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="ml-3 text-gray-900 font-medium">문의하기</span>
                     </div>
                     <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
