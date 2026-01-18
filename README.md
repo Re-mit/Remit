@@ -350,6 +350,9 @@ ALLOWED_USER_FILTER=
 
 # 로그인/회원가입 화면에 노출되는 "사용법(영상)"(유튜브) 링크
 HELP_VIDEO_URL=
+
+# 문의하기 메일 수신자(관리자 이메일)
+ADMIN_CONTACT_EMAIL=
 ```
 
 ---

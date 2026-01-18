@@ -5,6 +5,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MypageController;
+use App\Http\Controllers\Mypage\InquiryController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Auth;
 
@@ -71,6 +72,10 @@ Route::middleware(['auth'])->group(function () {
     // 마이페이지
     Route::get('/mypage', [MypageController::class, 'index'])->name('mypage.index');
     Route::get('/mypage/keycode', [MypageController::class, 'keycode'])->name('mypage.keycode');
+    Route::get('/mypage/inquiry', [InquiryController::class, 'create'])->name('mypage.inquiry.create');
+    Route::post('/mypage/inquiry', [InquiryController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('mypage.inquiry.store');
     Route::delete('/mypage', [MypageController::class, 'destroy'])->name('mypage.destroy');
 
     // 관리자
