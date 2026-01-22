@@ -30,11 +30,11 @@ class ReservationController extends Controller
 
     private function ensureSeats(Room $room): void
     {
-        $count = (int) config('reservation.default_seat_count', 5);
+        $count = (int) config('reservation.default_seat_count', 6);
         if ($count < 1) {
             $count = 1;
         }
-        $max = (int) config('reservation.max_seat_count', 5);
+        $max = (int) config('reservation.max_seat_count', 6);
         if ($max > 0) {
             $count = min($count, $max);
         }
@@ -52,7 +52,7 @@ class ReservationController extends Controller
             );
         }
 
-        // count 초과 좌석은 비활성화 (최대 5개 보장)
+        // count 초과 좌석은 비활성화 (상한 보장)
         Seat::where('room_id', $room->id)
             ->where('is_active', true)
             ->where(function ($q) use ($count) {
