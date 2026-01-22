@@ -163,7 +163,7 @@
                     <p class="text-sm text-red-600">해당 시간대는 만석입니다. 다른 시간을 선택해주세요.</p>
                 </div>
 
-                <!-- 5좌석 코너 배치 (좌상/우상/가운데/좌하/우하) -->
+                <!-- 6좌석 배치 (기존 5좌석 코너 배치 + 6번은 5번 아래) -->
                 <div class="mt-4 grid grid-cols-3 gap-4 w-fit mx-auto" x-show="!loadingSeats && totalSeats > 0">
                     <template x-for="(cell, idx) in seatCells" :key="idx">
                         <div class="w-16 h-10 flex items-center justify-center">
@@ -271,8 +271,15 @@ function reservationApp() {
         selectedSeatId: null,
         loadingSeats: false,
         get seatCells() {
-            // 3x3: [좌상,_,우상]/[_,가운데,_]/[좌하,_,우하]
-            const order = [0, null, 1, null, 2, null, 3, null, 4];
+            // 3x4:
+            // 1) [좌상,_,우상]
+            // 2) [_,가운데,_]
+            // 3) [좌하,_,우하]
+            // 4) [_,_,(5번 아래)]
+            //
+            // 좌석 인덱스 기준:
+            // - 0: 1번, 1: 2번, 2: 3번, 3: 4번, 4: 5번, 5: 6번
+            const order = [0, null, 1, null, 2, null, 3, null, 4, null, null, 5];
             const arr = [];
             for (const idx of order) {
                 arr.push(idx === null ? null : (this.seats[idx] || null));

@@ -15,11 +15,11 @@ class SeatSeeder extends Seeder
             return;
         }
 
-        $count = (int) config('reservation.default_seat_count', 5);
+        $count = (int) config('reservation.default_seat_count', 6);
         if ($count < 1) {
             $count = 1;
         }
-        $max = (int) config('reservation.max_seat_count', 5);
+        $max = (int) config('reservation.max_seat_count', 6);
         if ($max > 0) {
             $count = min($count, $max);
         }

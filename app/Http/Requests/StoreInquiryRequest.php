@@ -30,3 +30,4 @@ class StoreInquiryRequest extends FormRequest
 }
 
 
+
