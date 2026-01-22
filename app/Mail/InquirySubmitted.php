@@ -44,3 +44,4 @@ class InquirySubmitted extends Mailable
 
 
 
+
