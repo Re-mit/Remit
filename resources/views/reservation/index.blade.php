@@ -4,8 +4,45 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-24" x-data="reservationApp()">
+    <!-- Unread Notice Toasts (페이지 최상단 fixed, 헤더에 종속되지 않음) -->
+    <div
+        x-cloak
+        x-show="noticeToasts.length > 0"
+        x-ref="noticeToastWrap"
+        class="fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pt-3 z-50"
+        :style="`top: ${headerHeight}px`"
+        aria-live="polite"
+        aria-relevant="additions removals"
+    >
+        <div class="space-y-2">
+            <template x-for="n in noticeToasts" :key="n.id">
+                <div class="bg-white border border-gray-200 shadow-lg rounded-2xl p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold text-blue-600">공지 알림</div>
+                            <div class="mt-1 text-sm font-bold text-gray-900 break-words" x-text="n.title"></div>
+                            <div class="mt-2 text-sm text-gray-700 whitespace-pre-line break-words" x-text="n.message"></div>
+                            <div class="mt-3 flex items-center gap-3">
+                                <a href="{{ route('notification.index') }}" class="text-sm font-semibold text-blue-600 hover:underline">
+                                    알림함 보기
+                                </a>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="flex-shrink-0 text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg border border-gray-200"
+                            @click="dismissNotice(n.id)"
+                        >
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
     <!-- Header -->
-    <div class="bg-white sticky top-0 z-20 border-b shadow-sm">
+    <div class="bg-white sticky top-0 z-20 border-b shadow-sm" x-ref="headerWrap">
         <div class="flex items-center justify-between px-5 py-4">
             <div class="w-[90px]"></div>
             <h1 class="text-xl font-bold text-gray-900">예약</h1>
@@ -33,13 +70,19 @@
             </defs>
                 </svg>
                 <!-- Notification badge -->
-            @if(isset($unreadCount) && $unreadCount > 0)
-            <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
-            @endif
+            <span x-cloak x-show="unreadCount > 0" class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
             </a>
             </div>
         </div>
     </div>
+
+    <!-- fixed 토스트가 달력과 겹치지 않도록 공간 확보 -->
+    <div
+        x-cloak
+        x-show="noticeToasts.length > 0"
+        :style="`height: ${toastHeight}px`"
+        aria-hidden="true"
+    ></div>
 
     <!-- Calendar -->
     <div class="bg-white border-b border-gray-100 px-4 py-4 m-4 rounded-2xl">
@@ -260,7 +303,69 @@ function reservationApp() {
         ];
     }));
 
+    const unreadNotices = @json(($unreadNotices ?? collect())->values());
+    const initialUnreadCount = @json($unreadCount ?? 0);
+    const markReadUrlTemplate = @json(route('notification.read', ['id' => '___ID___']));
+
     return {
+        headerHeight: 0,
+        toastHeight: 0,
+        unreadCount: initialUnreadCount,
+        unreadNotices: unreadNotices,
+        get noticeToasts() {
+            return (this.unreadNotices || []).map(n => ({
+                id: n.id,
+                title: n.title || '공지',
+                message: n.message || '',
+            }));
+        },
+        csrfToken() {
+            const el = document.querySelector('meta[name="csrf-token"]');
+            return el ? el.getAttribute('content') : '';
+        },
+        recalcHeaderHeight() {
+            this.$nextTick(() => {
+                const el = this.$refs.headerWrap;
+                this.headerHeight = el ? (el.offsetHeight || 0) : 0;
+            });
+        },
+        recalcToastHeight() {
+            this.$nextTick(() => {
+                const el = this.$refs.noticeToastWrap;
+                this.toastHeight = (el && this.noticeToasts.length > 0) ? (el.offsetHeight || 0) : 0;
+            });
+        },
+        init() {
+            this.recalcHeaderHeight();
+            this.recalcToastHeight();
+            // 리사이즈 시 높이 재계산 (폰 회전/뷰포트 변화 대응)
+            window.addEventListener('resize', () => {
+                this.recalcHeaderHeight();
+                this.recalcToastHeight();
+            });
+        },
+        async dismissNotice(id) {
+            // 1) 서버에 읽음 처리
+            try {
+                const url = markReadUrlTemplate.replace('___ID___', String(id));
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': this.csrfToken(),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                });
+            } catch (e) {
+                // 네트워크 실패여도 UI는 닫기 처리(다음 새로고침 시 다시 뜰 수 있음)
+            }
+
+            // 2) UI에서 제거 + 뱃지 카운트 감소
+            this.unreadNotices = (this.unreadNotices || []).filter(n => n.id !== id);
+            if (this.unreadCount > 0) this.unreadCount -= 1;
+            this.recalcToastHeight();
+        },
         currentMonth: new Date().getMonth(),
         currentYear: new Date().getFullYear(),
         selectedDate: new Date(),

@@ -6,6 +6,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\Seat;
 use App\Models\User;
+use App\Models\Notification;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -151,11 +152,20 @@ class ReservationController extends Controller
         // 읽지 않은 알림 수 가져오기
         $user = Auth::user();
         $unreadCount = 0;
+        $unreadNotices = collect();
         if ($user) {
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
+            // 예약 페이지 상단 토스트용: 공지 알림(unread)만 가져오기
+            $unreadNotices = Notification::query()
+                ->where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->where('type', 'notice')
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get(['id', 'title', 'message', 'created_at']);
         }
 
-        return view('reservation.index', compact('reservations', 'unreadCount'));
+        return view('reservation.index', compact('reservations', 'unreadCount', 'unreadNotices'));
     }
 
     /**
