@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Notification;
 use App\Models\Notice;
+use App\Models\ErrorReport;
 use App\Models\User;
 use App\Models\LockboxUrl;
 use App\Models\AllowedEmail;
@@ -106,6 +107,47 @@ class AdminController extends Controller
         }
 
         return back()->with('success', '열쇠함 URL이 저장되었습니다.');
+    }
+
+    /**
+     * 에러 보고 게시판 (미해결 목록)
+     */
+    public function errorReports()
+    {
+        $this->authorizeAdmin();
+
+        $user = auth()->user();
+        $unreadCount = 0;
+        if ($user) {
+            $unreadCount = $user->notifications()->whereNull('read_at')->count();
+        }
+
+        $reports = ErrorReport::query()
+            ->with(['user'])
+            ->whereNull('resolved_at')
+            ->orderByDesc('created_at')
+            ->paginate(30);
+
+        return view('admin.error-reports', compact('unreadCount', 'reports'));
+    }
+
+    /**
+     * 에러 보고 해결 처리 (목록에서 제거)
+     */
+    public function resolveErrorReport($id)
+    {
+        $this->authorizeAdmin();
+
+        $report = ErrorReport::query()->findOrFail($id);
+        if ($report->resolved_at) {
+            return back()->with('success', '이미 해결 처리된 항목입니다.');
+        }
+
+        $report->resolved_at = now('Asia/Seoul');
+        $report->resolved_by_user_id = auth()->id();
+        $report->save();
+
+        return back()->with('success', '해결 처리되었습니다.');
     }
 
     /**

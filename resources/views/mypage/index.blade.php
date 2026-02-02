@@ -117,6 +117,21 @@
                 </div>
             </a>
 
+            <!-- 에러 보고하기 버튼 -->
+            <a href="{{ route('mypage.error-report.create') }}" class="block bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                        <span class="ml-3 text-gray-900 font-medium">에러 보고하기</span>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </a>
+
             <!-- 공지사항 버튼 -->
             <a href="{{ route('notification.index') }}" class="block bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="flex items-center justify-between p-4">

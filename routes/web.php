@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\Mypage\InquiryController;
+use App\Http\Controllers\Mypage\ErrorReportController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Auth;
 
@@ -89,6 +90,11 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
     Route::post('/mypage/inquiry', [InquiryController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('mypage.inquiry.store');
+
+    Route::get('/mypage/error-report', [ErrorReportController::class, 'create'])->name('mypage.error-report.create');
+    Route::post('/mypage/error-report', [ErrorReportController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('mypage.error-report.store');
     Route::delete('/mypage', [MypageController::class, 'destroy'])->name('mypage.destroy');
 
     // 관리자
@@ -97,6 +103,9 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
 
         Route::get('/urls', [AdminController::class, 'urls'])->name('admin.urls');
         Route::post('/urls', [AdminController::class, 'updateLockboxUrls'])->name('admin.urls.update');
+
+        Route::get('/error-reports', [AdminController::class, 'errorReports'])->name('admin.error-reports');
+        Route::post('/error-reports/{id}/resolve', [AdminController::class, 'resolveErrorReport'])->name('admin.error-reports.resolve');
 
         Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users', [AdminController::class, 'storeAllowedEmail'])->name('admin.users.store');
