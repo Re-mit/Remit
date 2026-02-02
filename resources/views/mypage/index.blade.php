@@ -81,8 +81,8 @@
                         <div class="mt-2 flex items-center gap-2">
                             <span class="text-sm text-gray-600">패널티</span>
                             <div class="flex items-center gap-2" aria-label="패널티 표시(2개)">
-                                <span class="inline-block rounded-full border border-black/50 {{ $p >= 1 ? 'bg-red-500' : 'bg-gray-800' }}" style="width:12px;height:12px"></span>
-                                <span class="inline-block rounded-full border border-black/50 {{ $p >= 2 ? 'bg-red-500' : 'bg-gray-800' }}" style="width:12px;height:12px"></span>
+                                <span class="inline-block rounded-full border {{ $p >= 1 ? 'bg-red-500 border-red/50' : 'bg-gray-800 border-black/50' }}" style="width:12px;height:12px"></span>
+                                <span class="inline-block rounded-full border {{ $p >= 2 ? 'bg-red-500 border-red/50' : 'bg-gray-800 border-black/50' }}" style="width:12px;height:12px"></span>
                             </div>
                         </div>
                     </div>
