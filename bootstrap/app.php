@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // 내부망만 접근 허용
         $middleware->appendToGroup('web', \App\Http\Middleware\CheckInternalIp::class);
+
+        // 라우트 미들웨어 별칭
+        $middleware->alias([
+            'not_suspended' => \App\Http\Middleware\EnsureNotSuspended::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

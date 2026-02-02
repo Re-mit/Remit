@@ -60,7 +60,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 
 // Protected Routes (Auth Required)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'not_suspended'])->group(function () {
     // guest 미들웨어(로그인 상태에서 /login 접근) 기본 리다이렉트 목적지 제공
     Route::get('/home', function () {
         return redirect()->route('reservation.index');
@@ -101,6 +101,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users', [AdminController::class, 'storeAllowedEmail'])->name('admin.users.store');
         Route::delete('/users/{id}', [AdminController::class, 'destroyAllowedEmail'])->name('admin.users.destroy');
+        Route::post('/users/{id}/penalty', [AdminController::class, 'addPenalty'])->name('admin.users.penalty');
+        Route::post('/users/{id}/penalty/reset', [AdminController::class, 'resetPenalty'])->name('admin.users.penalty.reset');
+        Route::post('/users/{id}/unsuspend', [AdminController::class, 'unsuspendUser'])->name('admin.users.unsuspend');
         Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admin.admins.store');
         Route::delete('/admins/{id}', [AdminController::class, 'destroyAdmin'])->name('admin.admins.destroy');
 
