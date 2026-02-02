@@ -29,7 +29,7 @@
             <div class="mt-4 grid gap-3">
                 <a href="{{ route('admin.urls') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
                     <div class="font-semibold text-gray-900">URL 등록</div>
-                    <div class="text-sm text-gray-600 mt-1">3일 단위 × 10개 (총 30일)</div>
+                    <div class="text-sm text-gray-600 mt-1">열쇠함 URL</div>
                 </a>
                 <a href="{{ route('admin.users') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
                     <div class="font-semibold text-gray-900">사용자 관리</div>

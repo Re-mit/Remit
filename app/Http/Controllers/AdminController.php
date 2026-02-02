@@ -57,7 +57,7 @@ class AdminController extends Controller
     }
 
     /**
-     * 월 단위 URL 등록 페이지 (3일 단위)
+     * 열쇠함 URL 등록 페이지 (전 기간 고정 1개)
      */
     public function urls()
     {
@@ -68,105 +68,36 @@ class AdminController extends Controller
         if ($user) {
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
         }
+        $lockboxUrl = LockboxUrl::query()->orderByDesc('id')->value('url');
 
-        $month = request('month'); // YYYY-MM
-        if (!$month) {
-            $month = now('Asia/Seoul')->format('Y-m');
-        }
-        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-            abort(400, 'Invalid month format.');
-        }
-
-        $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
-        $end = $start->copy()->endOfMonth()->endOfDay();
-        $daysInMonth = $start->daysInMonth;
-        // 고정 10개 블록:
-        // 1) 1~3, 2) 4~6, ... 9) 25~27, 10) 28~말일(30/31/윤2월)
-        $blockCount = 10;
-
-        $prevMonth = $start->copy()->subMonth()->format('Y-m');
-        $nextMonth = $start->copy()->addMonth()->format('Y-m');
-
-        // 3일 단위 URL 블록 생성 (10번은 말일까지 포함되어 3~4일이 될 수 있음)
-        $blocks = collect(range(0, $blockCount - 1))->map(function ($i) use ($start, $end) {
-            $blockStartCarbon = $start->copy()->addDays($i * 3);
-            $blockEndCarbon = $blockStartCarbon->copy()->addDays(2);
-            if ($blockEndCarbon->gt($end)) {
-                $blockEndCarbon = $end->copy();
-            }
-
-            $blockStart = $blockStartCarbon->toDateString();
-            $blockEnd = $blockEndCarbon->toDateString();
-            $existing = LockboxUrl::where('start_date', $blockStart)->first();
-
-            return [
-                'index' => $i + 1,
-                'start_date' => $blockStart,
-                'end_date' => $blockEnd,
-                'url' => $existing?->url,
-            ];
-        });
-
-        return view('admin.urls', compact('unreadCount', 'blocks', 'start', 'end', 'month', 'prevMonth', 'nextMonth', 'daysInMonth'));
+        return view('admin.urls', compact('unreadCount', 'lockboxUrl'));
     }
 
     /**
-     * 월 단위 URL 저장 (3일 단위)
+     * 열쇠함 URL 저장 (전 기간 고정 1개)
      */
     public function updateLockboxUrls(Request $request)
     {
         $this->authorizeAdmin();
 
-        $month = $request->input('month'); // YYYY-MM
-        if (!$month) {
-            $month = now('Asia/Seoul')->format('Y-m');
-        }
-        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-            return back()->withErrors(['error' => '월 형식이 올바르지 않습니다. (YYYY-MM)']);
-        }
+        $validated = $request->validate([
+            'url' => ['required', 'url', 'max:2048'],
+        ]);
 
-        $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Seoul')->startOfMonth()->startOfDay();
-        $end = $start->copy()->endOfMonth()->endOfDay();
-        // 고정 10개 블록
-        $blockCount = 10;
-
-        $expected = collect(range(0, $blockCount - 1))
-            ->map(fn ($i) => $start->copy()->addDays($i * 3)->toDateString())
-            ->all();
-
-        $rules = [
-            'urls' => ['required', 'array'],
-            'month' => ['required', 'regex:/^\d{4}-\d{2}$/'],
-        ];
-        foreach ($expected as $d) {
-            $rules["urls.$d"] = ['required', 'url', 'max:2048'];
-        }
-
-        $validated = $request->validate($rules);
+        // 전 기간 고정 1개 row로 유지 (기존 3일 단위 row는 정리)
+        $fixedStart = '2000-01-01';
+        $fixedEnd = '2099-12-31';
 
         DB::beginTransaction();
         try {
-            // 과거(동적 블록)로 저장된 같은 달 데이터 중, 이번에 기대하는 10개 start_date가 아닌 레코드는 제거
-            // (예: 31일 달에서 start_date=31 같은 단독 블록이 남아있으면 날짜 매칭이 겹쳐 first() 결과가 불안정해짐)
-            $monthStartDate = $start->copy()->toDateString();
-            $monthEndDate = $end->copy()->toDateString();
             LockboxUrl::query()
-                ->whereDate('start_date', '>=', $monthStartDate)
-                ->whereDate('start_date', '<=', $monthEndDate)
-                ->whereNotIn('start_date', $expected)
+                ->where('start_date', '!=', $fixedStart)
                 ->delete();
 
-            foreach ($expected as $d) {
-                $endDateCarbon = Carbon::parse($d, 'Asia/Seoul')->addDays(2)->endOfDay();
-                if ($endDateCarbon->gt($end)) {
-                    $endDateCarbon = $end->copy();
-                }
-                $endDate = $endDateCarbon->toDateString();
-                LockboxUrl::updateOrCreate(
-                    ['start_date' => $d],
-                    ['end_date' => $endDate, 'url' => $validated['urls'][$d]]
-                );
-            }
+            LockboxUrl::updateOrCreate(
+                ['start_date' => $fixedStart],
+                ['end_date' => $fixedEnd, 'url' => $validated['url']]
+            );
 
             DB::commit();
         } catch (\Exception $e) {

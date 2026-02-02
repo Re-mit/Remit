@@ -84,10 +84,9 @@ class MypageController extends Controller
                         'minute' => (int)$tenMinutesBefore->format('i'),
                     ];
 
-                    // 해당 날짜에 매핑된 URL 조회 (3일 단위)
+                    // 열쇠함 URL 조회 (전 기간 고정 1개)
                     $lockbox = LockboxUrl::query()
-                        ->whereDate('start_date', '<=', $dateKst)
-                        ->whereDate('end_date', '>=', $dateKst)
+                        ->orderByDesc('id')
                         ->first();
 
                     $reservation->lockbox_url = $lockbox?->url;
