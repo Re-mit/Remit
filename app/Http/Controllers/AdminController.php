@@ -292,7 +292,7 @@ class AdminController extends Controller
     }
 
     /**
-     * 정지 해제(패널티는 유지)
+     * 정지 해제(패널티도 0으로 초기화)
      */
     public function unsuspendUser($id)
     {
@@ -305,9 +305,10 @@ class AdminController extends Controller
         }
 
         $target->suspended_at = null;
+        $target->warning = 0;
         $target->save();
 
-        return back()->with('success', '계정 정지가 해제되었습니다.');
+        return back()->with('success', '계정 정지가 해제되었으며, 패널티가 초기화되었습니다.');
     }
 
     /**
