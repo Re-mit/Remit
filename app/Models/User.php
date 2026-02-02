@@ -50,6 +50,7 @@ class User extends Authenticatable implements CanResetPasswordContract
         return [
             'email_verified_at' => 'datetime',
             'terms_agreed_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

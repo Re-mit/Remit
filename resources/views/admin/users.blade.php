@@ -83,6 +83,89 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border p-5">
+            <h2 class="text-lg font-bold text-gray-900 mb-2">사용자 패널티/정지</h2>
+            <p class="text-sm text-gray-600">
+                사용자에게 패널티를 부여할 수 있습니다. <span class="font-semibold">패널티 2회 누적 시 계정이 정지됩니다.</span>
+            </p>
+
+            <div class="mt-4 space-y-2">
+                @if(empty($users) || $users->isEmpty())
+                    <div class="text-sm text-gray-600">표시할 사용자가 없습니다.</div>
+                @else
+                    @foreach($users as $u)
+                        @php
+                            $isAdmin = ($u->role ?? null) === 'admin';
+                            $isSuspended = !empty($u->suspended_at);
+                            $penalties = (int) ($u->warning ?? 0);
+                            $isEnvAdmin = !empty($envAdminEmail) && \App\Models\AllowedEmail::normalize($envAdminEmail) === \App\Models\AllowedEmail::normalize($u->email);
+                            $protected = $isAdmin || $isEnvAdmin;
+                        @endphp
+
+                        <div class="flex flex-col gap-3 rounded-xl border p-3">
+                            <div class="flex flex-col gap-3">
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-gray-900 break-all flex flex-wrap items-center gap-2">
+                                        <span>{{ $u->email }}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $u->name }} @if($u->student_id) · {{ $u->student_id }} @endif
+                                        · 패널티 <span class="font-semibold text-gray-700">{{ $penalties }}</span>회
+                                        @if($isSuspended && $u->suspended_at)
+                                            · 정지일시: {{ $u->suspended_at->timezone('Asia/Seoul')->format('Y-m-d H:i') }}
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Actions: 각 버튼을 컬럼(열)로 -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <form method="POST" action="{{ route('admin.users.penalty', $u->id) }}" class="w-full">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full px-3 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap
+                                                       {{ $protected ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100' }}"
+                                                {{ $protected ? 'disabled' : '' }}>
+                                            패널티 +1
+                                        </button>
+                                    </form>
+
+                                    <form method="POST" action="{{ route('admin.users.unsuspend', $u->id) }}" class="w-full">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full px-3 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap
+                                                       {{ ($protected || !$isSuspended) ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' }}"
+                                                {{ ($protected || !$isSuspended) ? 'disabled' : '' }}>
+                                            정지 해제
+                                        </button>
+                                    </form>
+
+                                    <form method="POST" action="{{ route('admin.users.penalty.reset', $u->id) }}" class="w-full">
+                                        @csrf
+                                        <button type="submit"
+                                                class="w-full px-3 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap
+                                                       {{ $protected ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100' }}"
+                                                {{ $protected ? 'disabled' : '' }}>
+                                            초기화
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            @if(!$protected)
+                                <div class="text-xs text-gray-500">
+                                    패널티 2회 이상이면 자동으로 정지 처리됩니다.
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    <div class="mt-4">
+                        {{ $users->appends(request()->except('members'))->links() }}
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border p-5">
             <h2 class="text-lg font-bold text-gray-900 mb-2">회원가입 허용 이메일</h2>
             <p class="text-sm text-gray-600">
                 여기에 등록된 이메일만 회원가입 가능합니다. 등록되지 않은 이메일로 회원가입 시

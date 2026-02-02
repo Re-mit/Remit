@@ -15,6 +15,13 @@ use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    private function isEnvAdminEmail(string $email): bool
+    {
+        $adminEmail = config('admin.email');
+        if (!$adminEmail) return false;
+        return mb_strtolower(trim($adminEmail)) === mb_strtolower(trim($email));
+    }
+
     private function authorizeAdmin(): void
     {
         $adminEmail = config('admin.email');
@@ -194,7 +201,78 @@ class AdminController extends Controller
 
         $envAdminEmail = config('admin.email');
 
-        return view('admin.users', compact('unreadCount', 'allowedEmails', 'admins', 'envAdminEmail'));
+        // 사용자 목록(패널티/정지 관리용) - allowedEmails의 pagination과 충돌 방지 위해 page 파라미터 분리
+        $users = User::query()
+            ->orderByDesc('created_at')
+            ->paginate(30, ['*'], 'members');
+
+        return view('admin.users', compact('unreadCount', 'allowedEmails', 'admins', 'envAdminEmail', 'users'));
+    }
+
+    /**
+     * 사용자 패널티(경고) +1
+     * - 2회 이상이면 계정 정지(suspended_at 세팅)
+     */
+    public function addPenalty($id)
+    {
+        $this->authorizeAdmin();
+
+        $target = User::query()->findOrFail($id);
+
+        // 슈퍼/관리자 계정은 보호
+        if ($this->isEnvAdminEmail($target->email) || ($target->role ?? null) === 'admin') {
+            return back()->withErrors(['error' => '관리자 계정에는 패널티를 부여할 수 없습니다.']);
+        }
+
+        $target->warning = (int) ($target->warning ?? 0) + 1;
+
+        // 2회 이상이면 정지 처리
+        if ($target->warning >= 2 && empty($target->suspended_at)) {
+            $target->suspended_at = now('Asia/Seoul');
+        }
+
+        $target->save();
+
+        return back()->with('success', "패널티가 부여되었습니다. (누적 {$target->warning}회)");
+    }
+
+    /**
+     * 패널티 초기화 + 정지 해제
+     */
+    public function resetPenalty($id)
+    {
+        $this->authorizeAdmin();
+
+        $target = User::query()->findOrFail($id);
+
+        if ($this->isEnvAdminEmail($target->email) || ($target->role ?? null) === 'admin') {
+            return back()->withErrors(['error' => '관리자 계정은 초기화할 수 없습니다.']);
+        }
+
+        $target->warning = 0;
+        $target->suspended_at = null;
+        $target->save();
+
+        return back()->with('success', '패널티가 초기화되었습니다.');
+    }
+
+    /**
+     * 정지 해제(패널티는 유지)
+     */
+    public function unsuspendUser($id)
+    {
+        $this->authorizeAdmin();
+
+        $target = User::query()->findOrFail($id);
+
+        if ($this->isEnvAdminEmail($target->email) || ($target->role ?? null) === 'admin') {
+            return back()->withErrors(['error' => '관리자 계정은 해제할 수 없습니다.']);
+        }
+
+        $target->suspended_at = null;
+        $target->save();
+
+        return back()->with('success', '계정 정지가 해제되었습니다.');
     }
 
     /**

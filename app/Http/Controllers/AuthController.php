@@ -52,6 +52,15 @@ class AuthController extends Controller
                 ->with('error', '이메일 또는 비밀번호가 올바르지 않습니다.');
         }
 
+        // 정지 계정 차단
+        $user = Auth::user();
+        if ($user && !empty($user->suspended_at)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->with('error', '계정이 정지되었습니다. 관리자에게 문의하세요.');
+        }
+
         $request->session()->regenerate();
 
         return redirect()->route('reservation.index')
@@ -234,6 +243,13 @@ class AuthController extends Controller
             return back()
                 ->withInput()
                 ->with('error', '이미 가입된 이메일입니다. 로그인해주세요.');
+        }
+
+        // 정지 계정은 재가입/비밀번호 설정 불가
+        if ($user && !empty($user->suspended_at)) {
+            return back()
+                ->withInput()
+                ->with('error', '해당 계정은 정지 상태입니다. 관리자에게 문의하세요.');
         }
 
         // 신규 생성 or 기존(구글) 계정에 비밀번호 설정
