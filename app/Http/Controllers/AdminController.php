@@ -213,7 +213,7 @@ class AdminController extends Controller
      * 사용자 패널티(경고) +1
      * - 2회 이상이면 계정 정지(suspended_at 세팅)
      */
-    public function addPenalty($id)
+    public function addPenalty(Request $request, $id)
     {
         $this->authorizeAdmin();
 
@@ -224,14 +224,49 @@ class AdminController extends Controller
             return back()->withErrors(['error' => '관리자 계정에는 패널티를 부여할 수 없습니다.']);
         }
 
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ], [
+            'reason.required' => '패널티 사유를 입력해주세요.',
+        ]);
+
+        $reason = trim($validated['reason']);
+
+        DB::beginTransaction();
+
         $target->warning = (int) ($target->warning ?? 0) + 1;
 
         // 2회 이상이면 정지 처리
+        $justSuspended = false;
         if ($target->warning >= 2 && empty($target->suspended_at)) {
             $target->suspended_at = now('Asia/Seoul');
+            $justSuspended = true;
         }
 
         $target->save();
+
+        // 대상 사용자에게 알림 생성
+        $admin = Auth::user();
+        $adminEmail = $admin?->email ?? '관리자';
+        $message = "패널티가 부여되었습니다.\n"
+            . "사유: {$reason}\n"
+            . "누적: {$target->warning}회\n"
+            . "부여자: {$adminEmail}";
+        if ($justSuspended || !empty($target->suspended_at)) {
+            $message .= "\n\n※ 패널티 2회 이상으로 계정이 정지되었습니다. 관리자에게 문의하세요.";
+        }
+
+        Notification::create([
+            'user_id' => $target->id,
+            'type' => 'penalty',
+            'title' => '패널티가 부여되었습니다.',
+            'message' => $message,
+            'read_at' => null,
+            'related_id' => null,
+            'related_type' => null,
+        ]);
+
+        DB::commit();
 
         return back()->with('success', "패널티가 부여되었습니다. (누적 {$target->warning}회)");
     }
