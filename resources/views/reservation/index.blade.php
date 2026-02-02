@@ -19,7 +19,7 @@
                 <div class="bg-white border border-gray-200 shadow-lg rounded-2xl p-4">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-xs font-semibold text-blue-600">공지 알림</div>
+                            <div class="text-xs font-semibold" :class="n.type === 'penalty' ? 'text-red-600' : 'text-blue-600'" x-text="n.type === 'penalty' ? '패널티 알림' : '공지 알림'"></div>
                             <div class="mt-1 text-sm font-bold text-gray-900 break-words" x-text="n.title"></div>
                             <div class="mt-2 text-sm text-gray-700 whitespace-pre-line break-words" x-text="n.message"></div>
                             <div class="mt-3 flex items-center gap-3">
@@ -315,6 +315,7 @@ function reservationApp() {
         get noticeToasts() {
             return (this.unreadNotices || []).map(n => ({
                 id: n.id,
+                type: n.type || 'notice',
                 title: n.title || '공지',
                 message: n.message || '',
             }));
