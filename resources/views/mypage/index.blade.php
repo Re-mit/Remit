@@ -16,7 +16,7 @@
                     $isAdmin = $user
                         && (
                             ($user->role ?? null) === 'admin'
-                            || ($envAdminEmail && \App\Models\AllowedEmail::normalize($envAdminEmail) === \App\Models\AllowedEmail::normalize($user->email))
+                            || ($envAdminEmail && \App\Models\AllowedEmail::normalize($envAdminEmail) === \App\Models\AllowedEmail::normalize($user->email)) 
                         );
                 @endphp
                 @if($isAdmin)
@@ -74,6 +74,30 @@
                     <div class="ml-4 flex-1">
                         <h2 class="text-lg font-semibold text-gray-900">{{ Auth::user()->name ?? '사용자' }} 님</h2>
                         <p class="text-sm text-gray-600">{{ Auth::user()->email ?? '' }}</p>
+                        @php
+                            $penalties = (int) (Auth::user()->warning ?? 0);
+                            $p = max(0, min(2, $penalties)); // 표시용(0~2)
+                        @endphp
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="text-sm text-gray-600">패널티</span>
+                            <div class="flex items-center gap-2" aria-label="패널티 표시(2개)">
+                                <span class="inline-block rounded-full border border-black/50 {{ $p >= 1 ? 'bg-red-500' : 'bg-gray-800' }}" style="width:12px;height:12px"></span>
+                                <span class="inline-block rounded-full border border-black/50 {{ $p >= 2 ? 'bg-red-500' : 'bg-gray-800' }}" style="width:12px;height:12px"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="mt-2 rounded-lg border bg-gray-50 p-3 text-xs text-gray-700">
+                        <div class="font-semibold text-gray-900">패널티 기준 안내</div>
+                        <ul class="mt-2 list-disc pl-5 space-y-1">
+                            <li>기물파손 시: 패널티 1회</li>
+                            <li>이용 후 뒷정리 미흡 시: 패널티 1회</li>
+                            <li>음주 및 금지 행동 시: 패널티 2회</li>
+                            <li>url 악용 시: 패널티 2회</li>
+                        </ul>
+                        <div class="mt-2 font-semibold text-red-600">패널티 2회 이상 시 자동 정지 처리됩니다.</div>
                     </div>
                 </div>
             </div>
