@@ -155,14 +155,14 @@ class ReservationController extends Controller
         $unreadNotices = collect();
         if ($user) {
             $unreadCount = $user->notifications()->whereNull('read_at')->count();
-            // 예약 페이지 상단 토스트용: 공지 알림(unread)만 가져오기
+            // 예약 페이지 상단 토스트용: 공지/패널티 알림(unread)만 가져오기
             $unreadNotices = Notification::query()
                 ->where('user_id', $user->id)
                 ->whereNull('read_at')
-                ->where('type', 'notice')
+                ->whereIn('type', ['notice', 'penalty'])
                 ->orderByDesc('created_at')
                 ->limit(5)
-                ->get(['id', 'title', 'message', 'created_at']);
+                ->get(['id', 'type', 'title', 'message', 'created_at']);
         }
 
         return view('reservation.index', compact('reservations', 'unreadCount', 'unreadNotices'));
