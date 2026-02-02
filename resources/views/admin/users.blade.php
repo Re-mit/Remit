@@ -120,6 +120,13 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <form method="POST" action="{{ route('admin.users.penalty', $u->id) }}" class="w-full">
                                         @csrf
+                                        <input
+                                            type="text"
+                                            name="reason"
+                                            class="w-full mb-2 px-3 py-2 rounded-lg border text-sm"
+                                            placeholder="패널티 사유(필수)"
+                                            {{ $protected ? 'disabled' : '' }}
+                                        />
                                         <button type="submit"
                                                 class="w-full px-3 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap
                                                        {{ $protected ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-yellow-50 text-yellow-800 border-yellow-200 hover:bg-yellow-100' }}"
