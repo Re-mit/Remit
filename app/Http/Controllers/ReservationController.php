@@ -6,6 +6,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\Seat;
 use App\Models\User;
+use App\Models\AllowedEmail;
 use App\Models\Notification;
 use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
@@ -14,6 +15,109 @@ use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
+    private function seatNumberFromLabel(?string $label): ?int
+    {
+        if (!$label) return null;
+        if (preg_match('/^(\d+)\s*번$/u', trim($label), $m)) {
+            return (int) $m[1];
+        }
+        return null;
+    }
+
+    private function validateGroupMemberEmailsForSeat3(Request $request, User $representative): array
+    {
+        $raw = $request->input('group_member_emails', []);
+        if (!is_array($raw)) {
+            throw new \InvalidArgumentException('동반 이용자 이메일 형식이 올바르지 않습니다.');
+        }
+
+        $emails = [];
+        foreach ($raw as $e) {
+            $e = is_string($e) ? trim(mb_strtolower($e)) : '';
+            if ($e === '') continue;
+            $emails[] = $e;
+        }
+
+        $emails = array_values(array_unique($emails));
+
+        if (count($emails) < 1) {
+            throw new \InvalidArgumentException('3번 좌석(단체석)은 함께 이용할 사람의 이메일을 최소 1명 이상 입력해주세요.');
+        }
+        if (count($emails) > 4) {
+            throw new \InvalidArgumentException('동반 이용자 이메일은 최대 4명까지 입력할 수 있습니다. (총 5명 이용)');
+        }
+
+        $repEmail = mb_strtolower(trim((string) $representative->email));
+        foreach ($emails as $e) {
+            if (!filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                throw new \InvalidArgumentException('이메일 형식이 올바르지 않습니다.');
+            }
+            if (!str_ends_with($e, '@gachon.ac.kr')) {
+                throw new \InvalidArgumentException('가천대학교 이메일(@gachon.ac.kr)만 입력할 수 있습니다.');
+            }
+            if ($repEmail !== '' && $e === $repEmail) {
+                throw new \InvalidArgumentException('동반 이용자 이메일에는 예약자 본인 이메일을 제외해주세요.');
+            }
+
+            // 허용 이메일 목록(allowed_emails) 또는 실제 사용자(users)만 허용
+            $isUser = User::query()->where('email', $e)->exists();
+            $isAllowed = AllowedEmail::query()->where('email', AllowedEmail::normalize($e))->exists();
+            $adminEmail = config('admin.email');
+            $isAdminEmail = $adminEmail && AllowedEmail::normalize($adminEmail) === AllowedEmail::normalize($e);
+            if (!$isUser && !$isAllowed && !$isAdminEmail) {
+                throw new \InvalidArgumentException("{$e}은(는) 사용자가 아닙니다.");
+            }
+        }
+
+        return $emails;
+    }
+
+    private function notifyNoiseToOverlappingUsers(
+        int $roomId,
+        int $groupSeatId,
+        array $segments, // [['start_at' => 'Y-m-d\TH:i:s', 'end_at' => 'Y-m-d\TH:i:s'], ...]
+        array $excludeReservationIds,
+        int $actorUserId,
+        int $relatedReservationId
+    ): void {
+        $userIds = DB::table('reservation_users')
+            ->join('reservations', 'reservation_users.reservation_id', '=', 'reservations.id')
+            ->where('reservations.room_id', $roomId)
+            ->where('reservations.status', 'confirmed')
+            ->whereNotNull('reservations.seat_id')
+            ->where('reservations.seat_id', '!=', $groupSeatId)
+            ->when(!empty($excludeReservationIds), function ($q) use ($excludeReservationIds) {
+                $q->whereNotIn('reservations.id', $excludeReservationIds);
+            })
+            ->where(function ($q) use ($segments) {
+                foreach ($segments as $seg) {
+                    $startStr = $seg['start_at'];
+                    $endStr = $seg['end_at'];
+                    $q->orWhere(function ($qq) use ($startStr, $endStr) {
+                        $qq->where('reservations.start_at', '<', $endStr)
+                            ->where('reservations.end_at', '>', $startStr);
+                    });
+                }
+            })
+            ->distinct()
+            ->pluck('reservation_users.user_id')
+            ->all();
+
+        $userIds = array_values(array_filter($userIds, fn ($id) => (int) $id !== (int) $actorUserId));
+        if (empty($userIds)) return;
+
+        foreach ($userIds as $uid) {
+            Notification::create([
+                'user_id' => (int) $uid,
+                'type' => 'notice',
+                'title' => '소음 안내',
+                'message' => '3번 좌석(단체석)이 예약되어 소음이 발생할 수 있습니다.',
+                'related_id' => $relatedReservationId,
+                'related_type' => Reservation::class,
+            ]);
+        }
+    }
+
     private function getOrCreateDefaultRoom(): Room
     {
         // 기본 방 (가천관 622호) 가져오기 (레거시 데이터 '622호'도 허용)
@@ -313,7 +417,28 @@ class ReservationController extends Controller
                 return back()->withErrors(['seat_id' => '선택한 좌석이 올바르지 않습니다.']);
             }
 
+            $seatNumber = $this->seatNumberFromLabel($seat->label);
+            $groupMemberEmails = [];
+            $groupMemberUserIds = [];
+            if ($seatNumber === 3) {
+                try {
+                    $groupMemberEmails = $this->validateGroupMemberEmailsForSeat3($request, $user);
+                } catch (\InvalidArgumentException $e) {
+                    DB::rollBack();
+                    return back()->withErrors(['group_member_emails' => $e->getMessage()])->withInput();
+                }
+
+                // 실제 가입된 사용자만 pivot에 붙일 수 있으므로(users 기준)
+                if (!empty($groupMemberEmails)) {
+                    $groupMemberUserIds = User::query()
+                        ->whereIn('email', $groupMemberEmails)
+                        ->pluck('id')
+                        ->all();
+                }
+            }
+
             $createdIds = [];
+            $createdSegments = [];
 
             foreach ($parsed as $seg) {
                 $startStr = $seg['start_at']->format('Y-m-d\TH:i:s');
@@ -336,6 +461,7 @@ class ReservationController extends Controller
                 $reservation = Reservation::create([
                     'room_id' => $room->id,
                     'seat_id' => $seat->id,
+                    'group_member_emails' => ($seatNumber === 3 ? $groupMemberEmails : null),
                     'start_at' => $startStr,
                     'end_at' => $endStr,
                     'key_code' => $this->generateKeyCode(),
@@ -344,11 +470,33 @@ class ReservationController extends Controller
 
                 // 예약-사용자 연결 (대표자)
                 $reservation->users()->attach($user->id, ['is_representative' => true]);
+
+                // 단체석: 동반 이용자도 예약 사용자로 연결(내 예약에 표시)
+                if ($seatNumber === 3 && !empty($groupMemberUserIds)) {
+                    foreach ($groupMemberUserIds as $uid) {
+                        $reservation->users()->syncWithoutDetaching([
+                            (int) $uid => ['is_representative' => false],
+                        ]);
+                    }
+                }
                 $createdIds[] = $reservation->id;
+                $createdSegments[] = ['start_at' => $startStr, 'end_at' => $endStr];
             }
 
             // 참여자 처리 (추후 구현)
             // if ($request->participants) { ... }
+
+            // 좌석 3(단체석) 예약 확정 순간: 같은 시간대에 이미 다른 좌석을 예약한 사용자에게 소음 안내 알림 발송
+            if ($seatNumber === 3 && !empty($createdIds) && !empty($createdSegments)) {
+                $this->notifyNoiseToOverlappingUsers(
+                    roomId: (int) $room->id,
+                    groupSeatId: (int) $seat->id,
+                    segments: $createdSegments,
+                    excludeReservationIds: $createdIds,
+                    actorUserId: (int) $user->id,
+                    relatedReservationId: (int) $createdIds[0],
+                );
+            }
 
             DB::commit();
 
@@ -482,8 +630,20 @@ class ReservationController extends Controller
     {
         $reservation = Reservation::findOrFail($id);
 
-        // 권한 체크 (임시: 모든 예약 취소 가능)
-        // TODO: 대표자/관리자만 취소 가능하도록 권한 로직 보강
+        // 권한 체크: 예약 참여자(대표/동반) 또는 관리자만 취소 가능
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login')->with('error', '로그인이 필요합니다.');
+        }
+
+        $isParticipant = $reservation->users()->where('users.id', $user->id)->exists();
+        $envAdminEmail = config('admin.email');
+        $isAdmin = ($user->role ?? null) === 'admin'
+            || ($envAdminEmail && AllowedEmail::normalize($envAdminEmail) === AllowedEmail::normalize((string) $user->email));
+
+        if (!$isParticipant && !$isAdmin) {
+            return back()->withErrors(['error' => '해당 예약을 취소할 권한이 없습니다.']);
+        }
 
         if ($reservation->status !== 'confirmed') {
             return back()->withErrors(['error' => '이미 취소된 예약입니다.']);

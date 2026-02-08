@@ -12,7 +12,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </a>
-            <h1 class="text-xl font-bold text-gray-900">문의하기</h1>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">문의하기</h1>
+                <p class="mt-1 text-xs text-gray-600">기물 파손, 이용 관련 요청/문의 등은 여기로 보내주세요.</p>
+            </div>
         </div>
     </div>
 

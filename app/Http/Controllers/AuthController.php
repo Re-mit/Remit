@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\EmailVerificationCodeMail;
 use App\Models\AllowedEmail;
 use App\Models\EmailVerificationCode;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -267,6 +268,24 @@ class AuthController extends Controller
         $user->email_verified_at = now();
         $user->terms_agreed_at = $user->terms_agreed_at ?: now('Asia/Seoul');
         $user->save();
+
+        // 단체석 예약 동반자로 등록된 경우: 회원가입 직후 해당 예약에 자동 연결(내 예약에 보이도록)
+        // (예약 당시엔 allowlist에만 있고 user가 없을 수 있으므로, 가입 시점에 backfill)
+        try {
+            $email = AllowedEmail::normalize((string) $user->email);
+            $reservationsToAttach = Reservation::query()
+                ->whereNotNull('group_member_emails')
+                ->whereJsonContains('group_member_emails', $email)
+                ->get(['id']);
+
+            foreach ($reservationsToAttach as $r) {
+                $r->users()->syncWithoutDetaching([
+                    (int) $user->id => ['is_representative' => false],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // 가입은 성공해야 하므로 연결 실패는 무시 (필요 시 추후 로그 추가 가능)
+        }
 
         // 인증코드 기록 정리 및 세션 정리
         EmailVerificationCode::where('email', $validated['email'])->delete();

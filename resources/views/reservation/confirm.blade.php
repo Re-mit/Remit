@@ -15,16 +15,7 @@
                 </a>
             </div>
             <h1 class="text-xl font-bold text-gray-900">예약 확인</h1>
-            <div class="w-[90px] flex items-center justify-end">
-                <a href="{{ route('notification.index') }}" class="relative">
-                    <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    @if(isset($unreadCount) && $unreadCount > 0)
-                        <span class="absolute -top-0.5 -right-1 w-3 h-3 bg-[#FF8282] rounded-full"></span>
-                    @endif
-                </a>
-            </div>
+            <div class="w-[90px]"></div>
         </div>
     </div>
 
@@ -81,6 +72,17 @@
                 <p class="text-sm text-gray-600 mb-1">좌석</p>
                 <p class="text-lg font-semibold text-gray-900">{{ $reservation->seat?->label ?? '미지정' }}</p>
             </div>
+
+            @if(($reservation->seat?->label ?? '') === '3번' && !empty($reservation->group_member_emails))
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600 mb-1">동반 이용자</p>
+                    <div class="text-sm text-gray-800 space-y-1">
+                        @foreach(($reservation->group_member_emails ?? []) as $email)
+                            <div class="break-words">{{ $email }}</div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Information Card -->
