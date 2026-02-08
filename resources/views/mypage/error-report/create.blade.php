@@ -12,7 +12,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
             </a>
-            <h1 class="text-xl font-bold text-gray-900">에러 보고하기</h1>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">에러 보고하기</h1>
+                <p class="mt-1 text-xs text-gray-600">앱/시스템 오류가 발생했을 때 어떤 상황에서 어떤 에러가 났는지 알려주세요.</p>
+            </div>
         </div>
     </div>
 

@@ -198,6 +198,13 @@
                     </p>
                 </div>
 
+                <!-- Seat 3 noise notice -->
+                <div class="mt-3" x-cloak x-show="!loadingSeats && selectedTimes.length > 0 && isGroupSeatReserved" x-transition>
+                    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 text-sm">
+                        단체석이 예약되어있어서 소음이 발생할 수 있습니다.
+                    </div>
+                </div>
+
                 <div class="mt-2" x-show="loadingSeats">
                     <p class="text-sm text-gray-500">좌석 정보를 불러오는 중...</p>
                 </div>
@@ -226,6 +233,9 @@
                                         <div class="flex-1 flex items-center justify-center whitespace-nowrap text-xs w-full text-center text-nowrap h-full">
                                             <span class="text-center" x-text="cell.label"></span>
                                         </div>
+                                        <div class="pb-1 leading-none" x-cloak x-show="getSeatNumber(cell.label) === 3">
+                                            <span class="text-[10px] font-medium text-gray-500">(단체석)</span>
+                                        </div>
                                     </div>
                                 </button>
                             </template>
@@ -242,6 +252,49 @@
             @csrf
             <input type="hidden" name="segments" :value="getSegmentsJson()">
             <input type="hidden" name="seat_id" :value="selectedSeatId">
+
+            <!-- Seat 3 (Group seat) member emails -->
+            <template x-if="isGroupSeatSelected">
+                <div class="mt-4 bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900">동반 이용자 이메일</h3>
+                        <p class="mt-1 text-xs text-gray-600">
+                            3번 좌석(단체석)을 함께 이용할 사람의 이메일을 입력해주세요. 최대 4명까지 추가할 수 있어요.
+                        </p>
+
+                        <template x-for="(email, i) in groupMemberEmails" :key="i">
+                            <div class="mt-3 flex items-center gap-2">
+                                <input
+                                    type="email"
+                                    name="group_member_emails[]"
+                                    class="flex-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm"
+                                    placeholder="example@gachon.ac.kr"
+                                    x-model="groupMemberEmails[i]"
+                                    :required="i === 0"
+                                >
+                                <button
+                                    type="button"
+                                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                                    x-cloak
+                                    x-show="groupMemberEmails.length > 1"
+                                    @click="removeGroupMember(i)"
+                                >
+                                    삭제
+                                </button>
+                            </div>
+                        </template>
+
+                        <button
+                            type="button"
+                            class="mt-3 text-sm font-semibold text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                            :disabled="groupMemberEmails.length >= 4"
+                            @click="addGroupMember()"
+                        >
+                            + 사람 추가
+                        </button>
+                    </div>
+                </div>
+            </template>
             
             <button 
                 type="submit"
@@ -376,6 +429,23 @@ function reservationApp() {
         totalSeats: 0,
         selectedSeatId: null,
         loadingSeats: false,
+        groupMemberEmails: [''],
+        getSeatNumber(label) {
+            if (!label) return null;
+            const m = String(label).trim().match(/^(\d+)\s*번$/);
+            return m ? parseInt(m[1], 10) : null;
+        },
+        get groupSeatId() {
+            const s = (this.seats || []).find(x => this.getSeatNumber(x?.label) === 3);
+            return s ? s.id : null;
+        },
+        get isGroupSeatReserved() {
+            const s = (this.seats || []).find(x => this.getSeatNumber(x?.label) === 3);
+            return !!(s && s.is_available === false);
+        },
+        get isGroupSeatSelected() {
+            return !!(this.selectedSeatId && this.groupSeatId && this.selectedSeatId === this.groupSeatId);
+        },
         get seatCells() {
             // 3x4:
             // 1) [좌상,_,우상]
@@ -526,6 +596,18 @@ function reservationApp() {
 
         selectSeat(seatId) {
             this.selectedSeatId = seatId;
+            if (!this.isGroupSeatSelected) {
+                this.groupMemberEmails = [''];
+            }
+        },
+        addGroupMember() {
+            if (this.groupMemberEmails.length >= 4) return;
+            this.groupMemberEmails.push('');
+        },
+        removeGroupMember(i) {
+            if (this.groupMemberEmails.length <= 1) return;
+            this.groupMemberEmails.splice(i, 1);
+            if (this.groupMemberEmails.length === 0) this.groupMemberEmails = [''];
         },
         
         formatDate(date) {
