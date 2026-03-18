@@ -9,28 +9,19 @@ use Symfony\Component\HttpFoundation\IpUtils;
 class CheckInternalIp
 {
     /**
-
-     * 내부망만 서비스 접근 허용 (방법 A)
-     * - 내부망: 172.25.128.0/21
-     * - 로컬 개발: 127.0.0.1, ::1 허용
+     * Optionally restrict web access to specific IP ranges.
      */
     public function handle(Request $request, Closure $next)
     {
-        $allowed = [
-            // 전체 허용 (IPv4/IPv6) - 내부망 제한을 사실상 해제
-            '0.0.0.0/0',
-            '::/0',
+        if (!config('deployment.restrict_by_ip', false)) {
+            return $next($request);
+        }
 
-            '127.0.0.1',
-            '::1',
-            '172.25.128.0/21',
-            '172.25.72.0/21',
-        ];
-
+        $allowed = config('deployment.allowed_ip_ranges', []);
         $ip = $request->ip();
 
         if (!$ip || !IpUtils::checkIp($ip, $allowed)) {
-            abort(403, '내부 네트워크 사용자만 접속 가능합니다.');
+            abort(403, 'This service is only available from approved networks.');
         }
 
         return $next($request);
