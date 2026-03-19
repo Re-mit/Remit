@@ -72,7 +72,7 @@
 
         <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-sm text-gray-700">
-                보고된 내용은 관리자에게 등록됩니다. (작성자 정보: {{ auth()->user()?->name }} / {{ auth()->user()?->email }})
+                보고된 내용은 관리자{{ config('admin.email') ? ' (' . config('admin.email') . ')' : '' }}에게 등록됩니다. (작성자 정보: {{ auth()->user()?->name }} / {{ auth()->user()?->email }})
             </p>
         </div>
     </div>
