@@ -14,3 +14,4 @@ Thumbs.db
 /coverage
 /database/*.sqlite
 /database/*.sqlite-journal
+.htaccess
