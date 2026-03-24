@@ -1,10 +1,9 @@
 @extends('layouts.app')
 
-@section('title', '에러 보고하기')
+@section('title', '서비스 개선')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-20">
-    <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center">
             <a href="{{ route('mypage.index') }}" class="mr-4">
@@ -13,13 +12,14 @@
                 </svg>
             </a>
             <div>
-                <h1 class="text-xl font-bold text-gray-900">에러 보고하기</h1>
-                <p class="mt-1 text-xs text-gray-600">앱/시스템 오류가 발생했을 때 어떤 상황에서 어떤 에러가 났는지 알려주세요.</p>
+                <h1 class="text-xl font-bold text-gray-900">서비스 개선하기</h1>
+                <p class="mt-1 text-xs text-gray-600">앱/시스템 사용 중 필요/개선이 필요한 부분을 말씀해주세요.</p>
             </div>
         </div>
     </div>
 
     <div class="px-4 py-6 space-y-4">
+        {{-- 성공/에러 메시지 처리 --}}
         @if(session('success'))
             <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4">
                 {{ session('success') }}
@@ -44,7 +44,7 @@
                            maxlength="255"
                            required
                            class="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 @error('title') border-red-300 focus:ring-red-200 @else border-gray-300 focus:border-blue-300 @enderror"
-                           placeholder="에러 제목을 입력해주세요.">
+                           placeholder="제목을 입력해주세요.">
                     @error('title')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -57,14 +57,14 @@
                               maxlength="5000"
                               required
                               class="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 @error('content') border-red-300 focus:ring-red-200 @else border-gray-300 focus:border-blue-300 @enderror"
-                              placeholder="어떤 상황에서 어떤 오류가 났는지 자세히 적어주세요.">{{ old('content') }}</textarea>
+                              placeholder="어떤 점이 개선되면 좋겠는지 자세히 적어주세요.">{{ old('content') }}</textarea>
                     @error('content')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <button type="submit"
-                        class="w-full px-4 py-3 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
+                        class="w-full px-4 py-3 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors shadow-sm">
                     제출하기
                 </button>
             </form>
@@ -72,11 +72,10 @@
 
         <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-sm text-gray-700">
-                보고된 내용은 관리자{{ config('admin.email') ? ' (' . config('admin.email') . ')' : '' }}에게 등록됩니다. (작성자 정보: {{ auth()->user()?->name }} / {{ auth()->user()?->email }})
+                {{-- PHP 7.4 호환 수정: optional() 사용 --}}
+                보고된 내용은 관리자에게 등록됩니다. (작성자 정보: {{ optional(auth()->user())->name }} / {{ optional(auth()->user())->email }})
             </p>
         </div>
     </div>
 </div>
 @endsection
-
-

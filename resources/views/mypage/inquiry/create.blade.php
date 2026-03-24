@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-20">
-    <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center">
             <a href="{{ route('mypage.index') }}" class="mr-4">
@@ -20,6 +19,7 @@
     </div>
 
     <div class="px-4 py-6 space-y-4">
+        {{-- 성공/에러 메시지 처리 --}}
         @if(session('success'))
             <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4">
                 {{ session('success') }}
@@ -57,14 +57,14 @@
                               maxlength="5000"
                               required
                               class="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 @error('content') border-red-300 focus:ring-red-200 @else border-gray-300 focus:border-blue-300 @enderror"
-                              placeholder="문의 내용을 입력해주세요. (최대 5000자)">{{ old('content') }}</textarea>
+                              placeholder="문의 내용을 입력해주세요. (문의 내용은 학과장에게 전송됩니다.)">{{ old('content') }}</textarea>
                     @error('content')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <button type="submit"
-                        class="w-full px-4 py-3 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
+                        class="w-full px-4 py-3 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors shadow-sm">
                     전송하기
                 </button>
             </form>
@@ -72,16 +72,10 @@
 
         <div class="bg-blue-50 rounded-xl p-5">
             <p class="text-sm text-gray-700">
-                문의 내용은 관리자에게 전달됩니다. (작성자 정보: {{ auth()->user()?->name }} / {{ auth()->user()?->email }})
+                {{-- PHP 7.4 호환 수정: optional() 사용 --}}
+                문의 내용은 학과장에게 전달됩니다. (작성자 정보: {{ optional(auth()->user())->name }} / {{ optional(auth()->user())->email }})
             </p>
         </div>
     </div>
 </div>
 @endsection
-
-
-
-
-
-
-

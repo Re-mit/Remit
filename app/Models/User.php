@@ -2,23 +2,21 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, CanResetPassword;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array
      */
     protected $fillable = [
         'name',
@@ -31,9 +29,9 @@ class User extends Authenticatable implements CanResetPasswordContract
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * The attributes that should be hidden for arrays.
      *
-     * @var list<string>
+     * @var array
      */
     protected $hidden = [
         'password',
@@ -41,28 +39,21 @@ class User extends Authenticatable implements CanResetPasswordContract
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'terms_agreed_at' => 'datetime',
-            'suspended_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'terms_agreed_at' => 'datetime',
+        'suspended_at' => 'datetime',
+    ];
 
-    /**
-     * Relationships
-     */
     public function reservations()
     {
         return $this->belongsToMany(Reservation::class, 'reservation_users')
-                    ->withPivot('is_representative')
-                    ->withTimestamps();
+            ->withPivot('is_representative')
+            ->withTimestamps();
     }
 
     public function usageLogs()
@@ -76,9 +67,10 @@ class User extends Authenticatable implements CanResetPasswordContract
     }
 
     /**
-     * 비밀번호 재설정 메일(노티피케이션) 커스텀 (한글/앱 링크)
+     * @param  string  $token
+     * @return void
      */
-    public function sendPasswordResetNotification($token): void
+    public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
     }

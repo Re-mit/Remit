@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', '관리자 - 에러 보고 게시판')
-@section('admin_title', '에러 보고')
+@section('title', '관리자 - 개선 사항 게시판')
+@section('admin_title', '개선 사항')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-24">
@@ -23,11 +23,11 @@
         @endif
 
         <div class="bg-white rounded-2xl shadow-sm border p-5">
-            <h2 class="text-lg font-bold text-gray-900 mb-2">에러 보고 게시판</h2>
+            <h2 class="text-lg font-bold text-gray-900 mb-2">개선 사항 게시판</h2>
 
             <div class="mt-4 space-y-3">
                 @if($reports->isEmpty())
-                    <div class="text-sm text-gray-600">미해결 에러 보고가 없습니다.</div>
+                    <div class="text-sm text-gray-600">미해결 개선 사항이 없습니다.</div>
                 @else
                     @foreach($reports as $r)
                         <div class="rounded-xl border p-4">
@@ -37,9 +37,10 @@
                                         {{ $r->title }}
                                     </div>
                                     <div class="text-xs text-gray-500 mt-1">
-                                        작성자: {{ $r->user?->name }} ({{ $r->user?->email }})
-                                        @if($r->user?->student_id) · {{ $r->user->student_id }} @endif
-                                        · 작성일: {{ $r->created_at?->timezone('Asia/Seoul')->format('Y-m-d H:i') }}
+                                        {{-- PHP 7.4 호환 수정: optional() 사용 --}}
+                                        작성자: {{ optional($r->user)->name }} ({{ optional($r->user)->email }})
+                                        @if(optional($r->user)->student_id) · {{ $r->user->student_id }} @endif
+                                        · 작성일: {{ optional($r->created_at)->timezone('Asia/Seoul')->format('Y-m-d H:i') }}
                                     </div>
                                 </div>
 
@@ -67,5 +68,3 @@
     </div>
 </div>
 @endsection
-
-

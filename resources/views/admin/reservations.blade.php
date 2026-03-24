@@ -36,7 +36,8 @@
                 @foreach($reservations as $r)
                     @php
                         $rep = $r->getRepresentative();
-                        $repLabel = $rep ? ($rep->name . ' (' . $rep->email . ')') : ($r->users->first()?->email ?? '-');
+                        // PHP 7.4 호환을 위해 optional() 사용
+                        $repLabel = $rep ? ($rep->name . ' (' . $rep->email . ')') : (optional($r->users->first())->email ?? '-');
                     @endphp
                     <div class="bg-white rounded-2xl shadow-sm border p-5">
                         <div class="flex items-start justify-between gap-3">
@@ -50,7 +51,8 @@
                                     {{ ($r->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->end_at->format('g:i') }}
                                 </div>
                                 <div class="mt-2 text-sm text-gray-700">
-                                    <span class="font-semibold">{{ $r->room?->name ?? '-' }}</span>
+                                    {{-- PHP 7.4 호환을 위해 optional() 사용 --}}
+                                    <span class="font-semibold">{{ optional($r->room)->name ?? '-' }}</span>
                                     @if($r->seat)
                                         <span class="text-gray-400 mx-2">|</span>
                                         <span class="font-semibold">{{ $r->seat->label }}</span>
@@ -73,7 +75,6 @@
                                     삭제
                                 </button>
 
-                                <!-- Delete Modal -->
                                 <div x-show="showModal"
                                      x-cloak
                                      style="display: none;"
@@ -136,6 +137,3 @@
     </div>
 </div>
 @endsection
-
-
-

@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 flex flex-col pb-24">
-    <!-- Header -->
     <div class="bg-white border-b border-gray-200">
         <div class="px-4 py-4 flex items-center justify-between">
             <div class="w-[90px] flex items-center">
@@ -28,9 +27,7 @@
         </div>
     </div>
 
-    <!-- Content -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <!-- Success Icon -->
         <div class="mb-6">
             <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g clip-path="url(#clip0_69_1332)">
@@ -47,7 +44,6 @@
         <h2 class="text-2xl font-bold text-gray-900 mb-2">예약이 완료되었어요</h2>
         <p class="text-sm text-gray-600 mb-8">총 {{ $reservations->count() }}건 ({{ $date }})</p>
 
-        <!-- Reservation List -->
         <div class="w-full max-w-md space-y-3 mb-8">
             @foreach($reservations as $reservation)
                 <div class="w-full bg-white rounded-2xl shadow-sm p-5 border">
@@ -69,11 +65,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <p class="text-lg font-semibold text-gray-900">{{ $reservation->room->name }}</p>
+                        {{-- PHP 7.4 대응: optional() 사용 --}}
+                        <p class="text-lg font-semibold text-gray-900">{{ optional($reservation->room)->name }}</p>
                     </div>
                     <div class="mt-3">
                         <p class="text-sm text-gray-600 mb-1">좌석</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $reservation->seat?->label ?? '미지정' }}</p>
+                        {{-- PHP 7.4 대응: optional() 사용 --}}
+                        <p class="text-lg font-semibold text-gray-900">{{ optional($reservation->seat)->label ?? '미지정' }}</p>
                     </div>
                 </div>
             @endforeach
@@ -86,5 +84,3 @@
     </div>
 </div>
 @endsection
-
-

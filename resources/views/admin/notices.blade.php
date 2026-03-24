@@ -8,6 +8,7 @@
     @include('admin._nav')
 
     <div class="p-5 space-y-6">
+        {{-- 메시지 알림 영역 --}}
         @if(session('success'))
             <div class="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4">
                 {{ session('success') }}
@@ -22,6 +23,7 @@
             </div>
         @endif
 
+        {{-- 공지 작성 폼 --}}
         <div class="bg-white rounded-2xl shadow-sm border p-5">
             <h2 class="text-lg font-bold text-gray-900 mb-4">공지사항 발송</h2>
 
@@ -29,19 +31,20 @@
                 @csrf
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input name="title" value="{{ old('title') }}" class="w-full rounded-lg border px-3 py-2" required />
+                    <input name="title" value="{{ old('title') }}" class="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" required />
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                    <textarea name="message" rows="6" class="w-full rounded-lg border px-3 py-2" required>{{ old('message') }}</textarea>
+                    <textarea name="message" rows="6" class="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" required>{{ old('message') }}</textarea>
                 </div>
 
-                <button type="submit" class="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600">
+                <button type="submit" class="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors shadow-sm">
                     공지 발송
                 </button>
             </form>
         </div>
 
+        {{-- 공지 목록 영역 --}}
         <div class="bg-white rounded-2xl shadow-sm border p-5">
             <h2 class="text-lg font-bold text-gray-900 mb-2">내가 작성한 공지</h2>
             <p class="text-sm text-gray-600 mb-4">잘못 작성한 공지는 여기서 삭제할 수 있습니다. (삭제 시 모든 사용자에게서도 함께 삭제됩니다.)</p>
@@ -56,9 +59,10 @@
                                 <div class="min-w-0">
                                     <div class="text-sm font-semibold text-gray-900 break-all">{{ $n->title }}</div>
                                     <div class="text-xs text-gray-500 mt-1">
-                                        {{ $n->created_at?->format('Y-m-d H:i') ?? '' }}
+                                        {{-- PHP 7.4 호환을 위해 optional() 사용 --}}
+                                        {{ optional($n->created_at)->format('Y-m-d H:i') }}
                                     </div>
-                                    <div class="text-sm text-gray-700 mt-3 whitespace-pre-line">{{ $n->message }}</div>
+                                    <div class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words">{{ $n->message }}</div>
                                 </div>
 
                                 <form method="POST" action="{{ route('admin.notices.destroy', $n->id) }}"
@@ -83,5 +87,3 @@
     </div>
 </div>
 @endsection
-
-

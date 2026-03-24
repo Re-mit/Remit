@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 pb-20">
-    <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center">
             <a href="{{ route('mypage.index') }}" class="mr-4">
@@ -18,7 +17,6 @@
 
     <div class="px-4 py-6">
         @if($notifications->isEmpty())
-            <!-- Empty State -->
             <div class="bg-white rounded-xl shadow-sm p-8 text-center">
                 <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
                     <svg class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,7 +52,8 @@
                                         <div class="flex items-start justify-between gap-3 mb-1">
                                             <p class="text-sm font-medium text-gray-900">{{ $notification->title }}</p>
                                             <p class="text-[11px] text-gray-500 whitespace-nowrap">
-                                                {{ $notification->created_at?->timezone('Asia/Seoul')->format('Y년 m월 d일 H:i') }}
+                                                {{-- PHP 7.4 호환을 위해 optional() 사용 --}}
+                                                {{ optional($notification->created_at)->timezone('Asia/Seoul')->format('Y년 m월 d일 H:i') }}
                                             </p>
                                         </div>
                                         <p class="text-xs text-gray-600">{!! nl2br(e($notification->message)) !!}</p>

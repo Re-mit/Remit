@@ -35,8 +35,8 @@ class InquiryController extends Controller
         $adminEmail = config('contact.admin_email');
         if (!$adminEmail) {
             Log::error('Inquiry send failed: admin email is not configured', [
-                'user_id' => $user?->id,
-                'user_email' => $user?->email,
+                'user_id' => $user ? $user->id : null,
+                'user_email' => $user ? $user->email : null,
                 'title' => $validated['title'] ?? null,
             ]);
 
@@ -48,19 +48,19 @@ class InquiryController extends Controller
         try {
             $submittedAt = now('Asia/Seoul');
             Mail::to($adminEmail)->send(new InquirySubmitted(
-                user: $user,
-                title: $validated['title'],
-                content: $validated['content'],
-                submittedAt: $submittedAt,
-                appName: config('app.name'),
-                appUrl: config('app.url'),
-                env: config('app.env'),
+                $user,
+                $validated['title'],
+                $validated['content'],
+                $submittedAt,
+                config('app.name'),
+                config('app.url'),
+                config('app.env')
             ));
         } catch (\Throwable $e) {
             Log::error('Inquiry send failed: mail exception', [
-                'user_id' => $user?->id,
-                'user_name' => $user?->name,
-                'user_email' => $user?->email,
+                'user_id' => $user ? $user->id : null,
+                'user_name' => $user ? $user->name : null,
+                'user_email' => $user ? $user->email : null,
                 'admin_email' => $adminEmail,
                 'title' => $validated['title'] ?? null,
                 'exception_class' => get_class($e),
@@ -77,5 +77,4 @@ class InquiryController extends Controller
             ->with('success', '문의가 전송되었습니다. 감사합니다.');
     }
 }
-
 

@@ -89,7 +89,7 @@ class MypageController extends Controller
                         ->orderByDesc('id')
                         ->first();
 
-                    $reservation->lockbox_url = $lockbox?->url;
+                    $reservation->lockbox_url = $lockbox ? $lockbox->url : null;
 
                     // 뱃지 텍스트/색상 (UI)
                     $reservation->badge_text = $reservation->is_past_ended ? '지난 내역' : '예약됨';

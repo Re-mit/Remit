@@ -4,32 +4,41 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class EmailVerificationCodeMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(
-        public string $code,
-        public int $expiresMinutes = 10,
-    ) {}
+    /**
+     * @var string
+     */
+    public $code;
 
-    public function envelope(): Envelope
+    /**
+     * @var int
+     */
+    public $expiresMinutes;
+
+    /**
+     * @param  string  $code
+     * @param  int  $expiresMinutes
+     * @return void
+     */
+    public function __construct($code, $expiresMinutes = 10)
     {
-        return new Envelope(
-            subject: 'Remit 이메일 인증번호',
-        );
+        $this->code = $code;
+        $this->expiresMinutes = $expiresMinutes;
     }
 
-    public function content(): Content
+    /**
+     * Build the message.
+     *
+     * @return $this
+     */
+    public function build()
     {
-        return new Content(
-            view: 'emails.verification-code',
-        );
+        return $this->subject('Remit 이메일 인증번호')
+            ->view('emails.verification-code');
     }
 }
-
-

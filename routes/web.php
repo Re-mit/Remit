@@ -11,6 +11,7 @@ use App\Http\Controllers\Mypage\InquiryController;
 use App\Http\Controllers\Mypage\ErrorReportController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

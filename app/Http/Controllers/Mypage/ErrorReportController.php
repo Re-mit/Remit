@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class ErrorReportController extends Controller
 {
     /**
-     * 에러 보고하기 작성 페이지
+     * 서비스 개선 페이지
      */
     public function create()
     {
@@ -23,7 +23,7 @@ class ErrorReportController extends Controller
     }
 
     /**
-     * 에러 보고 저장
+     * 서비스 개선 저장
      */
     public function store(Request $request)
     {
@@ -42,7 +42,7 @@ class ErrorReportController extends Controller
 
         return redirect()
             ->route('mypage.index')
-            ->with('success', '에러가 보고되었습니다. 감사합니다.');
+            ->with('success', '전달되었습니다. 감사합니다.');
     }
 }
 

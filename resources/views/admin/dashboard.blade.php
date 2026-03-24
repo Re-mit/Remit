@@ -40,8 +40,8 @@
                     <div class="text-sm text-gray-600 mt-1">전체 사용자에게 공지 알림 발송</div>
                 </a>
                 <a href="{{ route('admin.error-reports') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
-                    <div class="font-semibold text-gray-900">에러 보고</div>
-                    <div class="text-sm text-gray-600 mt-1">사용자가 제출한 에러 보고 확인/해결 처리</div>
+                    <div class="font-semibold text-gray-900">서비스 개선 사항</div>
+                    <div class="text-sm text-gray-600 mt-1">사용자가 제출한 개선 사항 확인/해결 처리</div>
                 </a>
                 <a href="{{ route('admin.reservations') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
                     <div class="font-semibold text-gray-900">예약 관리</div>

@@ -22,7 +22,7 @@
             </a>
             <a href="{{ route('admin.error-reports') }}"
                class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.error-reports') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">
-                에러 보고
+                개선 사항
             </a>
             <a href="{{ route('admin.reservations') }}"
                class="flex-shrink-0 px-3 py-2 text-sm font-semibold whitespace-nowrap {{ request()->routeIs('admin.reservations') ? 'font-bold text-blue-500' : 'bg-white text-gray-700' }}">

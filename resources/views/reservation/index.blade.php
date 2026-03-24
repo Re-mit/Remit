@@ -406,7 +406,7 @@ function reservationApp() {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': this.csrfToken(),
-                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({}),
@@ -658,48 +658,55 @@ function reservationApp() {
         },
 
         async refreshAvailableSeats() {
-            if (this.selectedTimes.length === 0) {
-                this.resetSeats();
-                return;
-            }
+    if (this.selectedTimes.length === 0) {
+        this.resetSeats();
+        return;
+    }
 
-            this.loadingSeats = true;
+    this.loadingSeats = true;
 
-            try {
-                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                const res = await fetch("{{ route('reservation.available_seats') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
-                    },
-                    body: JSON.stringify({
-                        segments: this.getSegmentsJson(),
-                    }),
-                });
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const res = await fetch("{{ route('reservation.available_seats') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded', // 가비아 방화벽 통과용
+                'Accept': 'application/json',
+                ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+            },
+            // 중요: x-www-form-urlencoded 형식이면 body도 URLSearchParams여야 합니다.
+            body: new URLSearchParams({
+                segments: this.getSegmentsJson(),
+            }),
+        });
 
-                if (!res.ok) {
-                    this.resetSeats();
-                    return;
-                }
+        // 1. 먼저 응답 데이터를 파싱합니다.
+        const data = await res.json();
 
-                const data = await res.json();
-                this.seats = data.seats || [];
-                this.availableSeatsCount = data.available_seats_count || 0;
-                this.totalSeats = data.total_seats || 0;
-
-                // 현재 선택 좌석이 더 이상 가능하지 않으면 해제
-                if (this.selectedSeatId) {
-                    const picked = this.seats.find(s => s.id === this.selectedSeatId);
-                    if (!picked || !picked.is_available) this.selectedSeatId = null;
-                }
-            } catch (e) {
-                this.resetSeats();
-            } finally {
-                this.loadingSeats = false;
-            }
+        // 2. 응답이 정상이 아닐 때 알림창을 띄웁니다.
+        if (!res.ok) {
+            alert(data.message || '좌석 정보를 불러올 수 없습니다.');
+            this.resetSeats();
+            return;
         }
+
+        // 3. 정상일 때 좌석 정보를 업데이트합니다.
+        this.seats = data.seats || [];
+        this.availableSeatsCount = data.available_seats_count || 0;
+        this.totalSeats = data.total_seats || 0;
+
+        if (this.selectedSeatId) {
+            const picked = this.seats.find(s => s.id === this.selectedSeatId);
+            if (!picked || !picked.is_available) this.selectedSeatId = null;
+        }
+    } catch (e) {
+        console.error(e);
+        // 서버 연결 자체가 끊겼을 때의 예외 처리
+        this.resetSeats();
+    } finally {
+        this.loadingSeats = false;
+    }
+}
     }
 }
 </script>

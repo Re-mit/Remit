@@ -53,7 +53,8 @@
                 @foreach($reservations as $r)
                     @php
                         $rep = $r->getRepresentative();
-                        $repLabel = $rep ? ($rep->name . ' (' . $rep->email . ')') : ($r->users->first()?->email ?? '-');
+                        // PHP 7.4 호환을 위해 optional() 사용
+                        $repLabel = $rep ? ($rep->name . ' (' . $rep->email . ')') : (optional($r->users->first())->email ?? '-');
                         $statusText = $r->status === 'confirmed'
                             ? '예약완료'
                             : (($r->cancelled_by ?? null) === 'admin' ? '삭제됨' : '취소됨');
@@ -81,7 +82,8 @@
                                 </div>
 
                                 <div class="mt-2 text-sm text-gray-700">
-                                    <span class="font-semibold">{{ $r->room?->name ?? '-' }}</span>
+                                    {{-- PHP 7.4 호환을 위해 optional() 사용 --}}
+                                    <span class="font-semibold">{{ optional($r->room)->name ?? '-' }}</span>
                                     @if($r->seat)
                                         <span class="text-gray-400 mx-2">|</span>
                                         <span class="font-semibold">{{ $r->seat->label }}</span>
@@ -115,6 +117,3 @@
     </div>
 </div>
 @endsection
-
-
-

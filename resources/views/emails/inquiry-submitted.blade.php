@@ -10,7 +10,8 @@
         <h2 style="margin:0 0 12px; font-size:18px; color:#111827;">문의가 접수되었습니다</h2>
 
         <div style="margin:0 0 16px; font-size:13px; color:#6b7280;">
-            <div>제출 시각: {{ $submittedAt?->format('Y-m-d H:i:s') }} (Asia/Seoul)</div>
+            {{-- PHP 7.4 호환 수정: optional() 사용 --}}
+            <div>제출 시각: {{ optional($submittedAt)->format('Y-m-d H:i:s') }} (Asia/Seoul)</div>
         </div>
 
         <div style="border-top:1px solid #e5e7eb; padding-top:16px; margin-top:16px;">
@@ -41,5 +42,3 @@
     </div>
 </body>
 </html>
-
-

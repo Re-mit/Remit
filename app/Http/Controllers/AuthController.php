@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -33,7 +34,7 @@ class AuthController extends Controller
         ]);
 
         // 가천 이메일만 허용
-        if (!str_ends_with($validated['email'], '@gachon.ac.kr')) {
+        if (!Str::endsWith($validated['email'], '@gachon.ac.kr')) {
             return back()
                 ->withInput()
                 ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 로그인할 수 있습니다.');
@@ -87,7 +88,7 @@ class AuthController extends Controller
 
         $email = AllowedEmail::normalize($validated['email']);
 
-        if (!str_ends_with($email, '@gachon.ac.kr')) {
+        if (!Str::endsWith($email, '@gachon.ac.kr')) {
             return back()
                 ->withInput()
                 ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 인증번호를 발송할 수 있습니다.');
@@ -217,7 +218,7 @@ class AuthController extends Controller
         $validated['email'] = AllowedEmail::normalize($validated['email']);
 
         // 가천 이메일만 허용
-        if (!str_ends_with($validated['email'], '@gachon.ac.kr')) {
+        if (!Str::endsWith($validated['email'], '@gachon.ac.kr')) {
             return back()
                 ->withInput()
                 ->with('error', '가천대학교 이메일(@gachon.ac.kr)로만 회원가입할 수 있습니다.');

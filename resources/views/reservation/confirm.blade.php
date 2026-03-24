@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="min-h-screen bg-gray-50 flex flex-col pb-24">
-    <!-- Header -->
     <div class="bg-white border-b border-gray-200">
         <div class="px-4 py-4 flex items-center justify-between">
             <div class="w-[90px] flex items-center">
@@ -19,9 +18,7 @@
         </div>
     </div>
 
-    <!-- Content -->
     <div class="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <!-- Success Icon -->
         <div class="mb-6">
             <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g clip-path="url(#clip0_69_1332)">
@@ -34,12 +31,9 @@
             </defs>
             </svg>
         </div>
-        <!-- Success Message -->
         <h2 class="text-2xl font-bold text-gray-900 mb-8">예약이 완료되었어요</h2>
 
-        <!-- Reservation Details Card -->
         <div class="w-full max-w-md bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <!-- Date and Status -->
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <p class="text-sm text-gray-600 mb-1">예약 날짜</p>
@@ -50,7 +44,6 @@
                 </span>
             </div>
 
-            <!-- Time -->
             <div class="mb-4">
                 <p class="text-sm text-gray-600 mb-1">예약 시간</p>
                 <p class="text-lg font-semibold text-gray-900">
@@ -58,22 +51,22 @@
                 </p>
             </div>
 
-            <!-- Location -->
             <div class="flex items-center">
                 <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <p class="text-lg font-semibold text-gray-900">{{ $reservation->room->name }}</p>
+                <p class="text-lg font-semibold text-gray-900">{{ optional($reservation->room)->name }}</p>
             </div>
 
-            <!-- Seat -->
             <div class="mt-4">
                 <p class="text-sm text-gray-600 mb-1">좌석</p>
-                <p class="text-lg font-semibold text-gray-900">{{ $reservation->seat?->label ?? '미지정' }}</p>
+                {{-- PHP 7.4 호환 수정 (67라인): optional() 사용 --}}
+                <p class="text-lg font-semibold text-gray-900">{{ optional($reservation->seat)->label ?? '미지정' }}</p>
             </div>
 
-            @if(($reservation->seat?->label ?? '') === '3번' && !empty($reservation->group_member_emails))
+            {{-- PHP 7.4 호환 수정 (70라인): optional() 사용 --}}
+            @if((optional($reservation->seat)->label ?? '') === '3번' && !empty($reservation->group_member_emails))
                 <div class="mt-4">
                     <p class="text-sm text-gray-600 mb-1">동반 이용자</p>
                     <div class="text-sm text-gray-800 space-y-1">
@@ -85,7 +78,6 @@
             @endif
         </div>
 
-        <!-- Information Card -->
         <div class="w-full max-w-md bg-blue-50 rounded-2xl p-6 mb-8">
             <div class="flex flex-col items-start">
                 <div class="flex items-center gap-2 mb-3">
@@ -110,7 +102,6 @@
             </div>
         </div>
 
-        <!-- Close Button -->
         <a href="{{ route('reservation.index') }}" 
            class="w-full max-w-md py-4 bg-white border-2 border-gray-300 rounded-2xl text-center text-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
             닫기
@@ -118,4 +109,3 @@
     </div>
 </div>
 @endsection
-

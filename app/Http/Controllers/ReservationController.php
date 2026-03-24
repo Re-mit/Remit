@@ -12,6 +12,8 @@ use App\Support\LegacyReservationMigrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ReservationController extends Controller
 {
@@ -22,6 +24,74 @@ class ReservationController extends Controller
             return (int) $m[1];
         }
         return null;
+    }
+
+    private function reservationHasSeatNoColumn(): bool
+    {
+        static $hasSeatNoColumn = null;
+
+        if ($hasSeatNoColumn === null) {
+            $hasSeatNoColumn = Schema::hasColumn('reservations', 'seat_no');
+        }
+
+        return $hasSeatNoColumn;
+    }
+
+    private function seatIdsByNumber(iterable $seats): array
+    {
+        $seatIdsByNumber = [];
+
+        foreach ($seats as $seat) {
+            $seatNumber = $this->seatNumberFromLabel($seat->label ?? null);
+            if ($seatNumber === null) {
+                continue;
+            }
+
+            $seatIdsByNumber[$seatNumber] = (int) $seat->id;
+        }
+
+        return $seatIdsByNumber;
+    }
+
+    private function overlappingReservationsQuery(int $roomId, array $segments)
+    {
+        return Reservation::query()
+            ->where('room_id', $roomId)
+            ->where('status', 'confirmed')
+            ->where(function ($q) use ($segments) {
+                foreach ($segments as $seg) {
+                    $startStr = (new \DateTime($seg['start_at']))->format('Y-m-d\TH:i:s');
+                    $endStr = (new \DateTime($seg['end_at']))->format('Y-m-d\TH:i:s');
+                    $q->orWhere(function ($qq) use ($startStr, $endStr) {
+                        $qq->where('start_at', '<', $endStr)
+                            ->where('end_at', '>', $startStr);
+                    });
+                }
+            });
+    }
+
+    private function resolveReservedSeatIds(iterable $reservations, array $seatIdsByNumber): array
+    {
+        $reservedSeatIds = [];
+
+        foreach ($reservations as $reservation) {
+            $seatId = isset($reservation->seat_id) ? (int) $reservation->seat_id : 0;
+            if ($seatId > 0) {
+                $reservedSeatIds[$seatId] = true;
+                continue;
+            }
+
+            if (!$this->reservationHasSeatNoColumn()) {
+                continue;
+            }
+
+            $seatNo = isset($reservation->seat_no) ? (int) $reservation->seat_no : 0;
+            if ($seatNo > 0 && isset($seatIdsByNumber[$seatNo])) {
+                $reservedSeatIds[$seatIdsByNumber[$seatNo]] = true;
+            }
+        }
+
+        return array_map('intval', array_keys($reservedSeatIds));
     }
 
     private function validateGroupMemberEmailsForSeat3(Request $request, User $representative): array
@@ -52,7 +122,7 @@ class ReservationController extends Controller
             if (!filter_var($e, FILTER_VALIDATE_EMAIL)) {
                 throw new \InvalidArgumentException('이메일 형식이 올바르지 않습니다.');
             }
-            if (!str_ends_with($e, '@gachon.ac.kr')) {
+            if (!Str::endsWith($e, '@gachon.ac.kr')) {
                 throw new \InvalidArgumentException('가천대학교 이메일(@gachon.ac.kr)만 입력할 수 있습니다.');
             }
             if ($repEmail !== '' && $e === $repEmail) {
@@ -195,22 +265,19 @@ class ReservationController extends Controller
             ->get(['id', 'label']);
 
         // OR 조건으로 "어느 구간이든 겹치면 예약된 좌석"으로 처리
-        $reservedSeatIds = Reservation::where('room_id', $room->id)
-            ->where('status', 'confirmed')
-            ->whereNotNull('seat_id')
-            ->where(function ($q) use ($segments) {
-                foreach ($segments as $seg) {
-                    $startStr = (new \DateTime($seg['start_at']))->format('Y-m-d\TH:i:s');
-                    $endStr = (new \DateTime($seg['end_at']))->format('Y-m-d\TH:i:s');
-                    $q->orWhere(function ($qq) use ($startStr, $endStr) {
-                        $qq->where('start_at', '<', $endStr)
-                            ->where('end_at', '>', $startStr);
-                    });
-                }
-            })
-            ->distinct()
-            ->pluck('seat_id')
-            ->all();
+        $seatIdsByNumber = $this->seatIdsByNumber($activeSeats);
+        $reservationColumns = ['seat_id'];
+        if ($this->reservationHasSeatNoColumn()) {
+            $reservationColumns[] = 'seat_no';
+        }
+
+        $reservedSeatIds = $this->resolveReservedSeatIds(
+            $this->overlappingReservationsQuery($room->id, $segments)
+                ->select($reservationColumns)
+                ->distinct()
+                ->get(),
+            $seatIdsByNumber
+        );
 
         $seats = $activeSeats->map(function ($s) use ($reservedSeatIds) {
             return [
@@ -446,10 +513,19 @@ class ReservationController extends Controller
 
                 // 중복 예약 확인 (동시성 제어) - 같은 좌석에서만 겹침 금지
                 $overlapping = Reservation::where('room_id', $room->id)
-                    ->where('seat_id', $seat->id)
                     ->where('status', 'confirmed')
                     ->where('start_at', '<', $endStr)
                     ->where('end_at', '>', $startStr)
+                    ->where(function ($q) use ($seat, $seatNumber) {
+                        $q->where('seat_id', $seat->id);
+
+                        if ($this->reservationHasSeatNoColumn() && $seatNumber !== null) {
+                            $q->orWhere(function ($legacyQuery) use ($seatNumber) {
+                                $legacyQuery->whereNull('seat_id')
+                                    ->where('seat_no', $seatNumber);
+                            });
+                        }
+                    })
                     ->lockForUpdate()
                     ->exists();
 
@@ -458,7 +534,7 @@ class ReservationController extends Controller
                     return back()->withErrors(['seat_id' => '선택한 좌석은 이미 해당 시간대에 예약되어 있습니다.']);
                 }
 
-                $reservation = Reservation::create([
+                $reservationAttributes = [
                     'room_id' => $room->id,
                     'seat_id' => $seat->id,
                     'group_member_emails' => ($seatNumber === 3 ? $groupMemberEmails : null),
@@ -466,7 +542,13 @@ class ReservationController extends Controller
                     'end_at' => $endStr,
                     'key_code' => $this->generateKeyCode(),
                     'status' => 'confirmed',
-                ]);
+                ];
+
+                if ($this->reservationHasSeatNoColumn() && $seatNumber !== null) {
+                    $reservationAttributes['seat_no'] = $seatNumber;
+                }
+
+                $reservation = Reservation::create($reservationAttributes);
 
                 // 예약-사용자 연결 (대표자)
                 $reservation->users()->attach($user->id, ['is_representative' => true]);
@@ -489,12 +571,12 @@ class ReservationController extends Controller
             // 좌석 3(단체석) 예약 확정 순간: 같은 시간대에 이미 다른 좌석을 예약한 사용자에게 소음 안내 알림 발송
             if ($seatNumber === 3 && !empty($createdIds) && !empty($createdSegments)) {
                 $this->notifyNoiseToOverlappingUsers(
-                    roomId: (int) $room->id,
-                    groupSeatId: (int) $seat->id,
-                    segments: $createdSegments,
-                    excludeReservationIds: $createdIds,
-                    actorUserId: (int) $user->id,
-                    relatedReservationId: (int) $createdIds[0],
+                    (int) $room->id,
+                    (int) $seat->id,
+                    $createdSegments,
+                    $createdIds,
+                    (int) $user->id,
+                    (int) $createdIds[0]
                 );
             }
 
@@ -611,7 +693,7 @@ class ReservationController extends Controller
                 'date' => $r->start_at->format('Y-m-d'),
                 'time' => ($r->start_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->start_at->format('g:i') . ' - ' . ($r->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $r->end_at->format('g:i'),
                 'room_name' => $r->room->name,
-                'seat_label' => $r->seat?->label,
+                'seat_label' => $r->seat ? $r->seat->label : null,
                 'status' => $r->status,
                 'status_text' => $statusText,
                 'start_at' => $r->start_at->toIso8601String(),

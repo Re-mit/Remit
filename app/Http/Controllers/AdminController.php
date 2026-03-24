@@ -12,6 +12,7 @@ use App\Models\AllowedEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -110,7 +111,7 @@ class AdminController extends Controller
     }
 
     /**
-     * 에러 보고 게시판 (미해결 목록)
+     * 서비스 개선 게시판 (미해결 목록)
      */
     public function errorReports()
     {
@@ -132,7 +133,7 @@ class AdminController extends Controller
     }
 
     /**
-     * 에러 보고 해결 처리 (목록에서 제거)
+     * 서비스 개선 해결 처리 (목록에서 제거)
      */
     public function resolveErrorReport($id)
     {
@@ -220,7 +221,7 @@ class AdminController extends Controller
 
         // 대상 사용자에게 알림 생성
         $admin = Auth::user();
-        $adminEmail = $admin?->email ?? '관리자';
+        $adminEmail = $admin ? $admin->email : '관리자';
         $message = "패널티가 부여되었습니다.\n"
             . "사유: {$reason}\n"
             . "누적: {$target->warning}회\n"
@@ -344,7 +345,7 @@ class AdminController extends Controller
 
         $email = AllowedEmail::normalize($validated['email']);
 
-        if (!str_ends_with($email, '@gachon.ac.kr')) {
+        if (!Str::endsWith($email, '@gachon.ac.kr')) {
             return back()->withErrors(['error' => '가천대학교 이메일(@gachon.ac.kr)만 등록할 수 있습니다.']);
         }
 
@@ -489,8 +490,8 @@ class AdminController extends Controller
                         (($reservation->end_at->format('A') === 'AM' ? '오전' : '오후') . ' ' . $reservation->end_at->format('g:i'))
                     : '';
 
-                $roomLabel = $reservation->room?->name ?? '예약';
-                $seatLabel = $reservation->seat?->label;
+                $roomLabel = $reservation->room ? $reservation->room->name : '예약';
+                $seatLabel = $reservation->seat ? $reservation->seat->label : null;
                 $reason = $validated['cancel_reason'];
 
                 $rows = [];

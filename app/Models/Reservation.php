@@ -13,6 +13,7 @@ class Reservation extends Model
     protected $fillable = [
         'room_id',
         'seat_id',
+        'seat_no',
         'group_member_emails',
         'start_at',
         'end_at',
@@ -27,6 +28,7 @@ class Reservation extends Model
         'start_at' => 'datetime',
         'end_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'seat_no' => 'integer',
         'group_member_emails' => 'array',
     ];
 
