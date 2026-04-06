@@ -49,8 +49,8 @@ class MypageController extends Controller
             $reservations = $user->reservations()
                 ->with(['room'])
                 ->where('status', 'confirmed')
-                // 예약 종료 시간이 지난 내역은 목록에서 숨김 (KST 기준)
-                ->where('end_at', '>', $now)
+                // 예약 종료 후 1시간이 지난 내역은 목록에서 숨김 (KST 기준)
+                ->where('end_at', '>', $now->copy()->subHour())
                 ->orderBy('start_at', 'desc')
                 ->get()
                 ->map(function($reservation) {
@@ -59,21 +59,22 @@ class MypageController extends Controller
                     $endAtKst = $reservation->end_at->copy()->timezone('Asia/Seoul');
                     $dateKst = $startAtKst->toDateString();
 
-                    // URL 공개 시간: 예약 시작 10분 전 (KST 기준)
-                    // - Carbon을 사용하면 일/월/년 경계도 안전하게 처리됨
+                    // URL 공개 시작 시간: 예약 시작 10분 전 (KST 기준)
+                    // URL 공개 종료 시간: 예약 종료 후 1시간 (KST 기준)
                     $tenMinutesBefore = $startAtKst->copy()->subMinutes(10);
+                    $urlVisibleUntil = $endAtKst->copy()->addHour();
                     
-                    // 종료 시간이 지난 예약은 "지난 내역" 처리 + URL 미노출
-                    // (목록 쿼리에서 end_at > now로 필터링하지만, UI/JS 안전장치로 유지)
-                    $reservation->is_past_ended = $now >= $endAtKst;
+                    // 종료 후 1시간이 지난 예약은 "지난 내역" 처리 + URL 미노출
+                    // (목록 쿼리와 별개로 UI/JS 안전장치로 유지)
+                    $reservation->is_past_ended = $now >= $urlVisibleUntil;
 
                     // URL 공개 여부:
                     // - 예약 시작 10분 전부터
-                    // - 예약 종료 시간 전까지만
-                    // - 종료 시간이 지나면 무조건 false
+                    // - 예약 종료 후 1시간 전까지만
+                    // - 종료 후 1시간이 지나면 무조건 false
                     $reservation->is_url_disclosed = !$reservation->is_past_ended
                         && $now >= $tenMinutesBefore
-                        && $now < $endAtKst;
+                        && $now < $urlVisibleUntil;
                     
                     // 한국 시간으로 포맷팅된 공개 시간 (JavaScript에서 사용)
                     $reservation->url_disclosure_time_formatted = [
