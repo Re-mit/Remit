@@ -22,3 +22,6 @@ Thumbs.db
 *.sql.gz
 *.dump
 backup*.sql
+
+# 내부 문서 (GitHub 미공개)
+/docs/
