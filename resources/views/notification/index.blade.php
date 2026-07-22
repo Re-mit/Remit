@@ -7,9 +7,7 @@
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="px-4 py-4 flex items-center">
             <a href="{{ route('mypage.index') }}" class="mr-4">
-                <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
+                <x-icons.chevron-left class="w-6 h-6 text-gray-600" />
             </a>
             <h1 class="text-xl font-bold text-gray-900">알림</h1>
         </div>

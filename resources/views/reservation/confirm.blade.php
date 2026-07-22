@@ -8,9 +8,7 @@
         <div class="px-4 py-4 flex items-center justify-between">
             <div class="w-[90px] flex items-center">
                 <a href="{{ route('reservation.index') }}" class="mr-4">
-                <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
+                <x-icons.chevron-left class="w-6 h-6 text-gray-600" />
                 </a>
             </div>
             <h1 class="text-xl font-bold text-gray-900">예약 확인</h1>
