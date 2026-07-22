@@ -16,3 +16,9 @@ Thumbs.db
 /database/*.sqlite
 /database/*.sqlite-journal
 .htaccess
+
+# DB dumps / backups (절대 커밋 금지)
+*.sql
+*.sql.gz
+*.dump
+backup*.sql
