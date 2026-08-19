@@ -59,6 +59,170 @@ class AdminController extends Controller
     }
 
     /**
+     * 회원 및 예약 통계
+     */
+    public function statistics(Request $request)
+    {
+        $this->authorizeAdmin();
+
+        $period = (int) $request->query('period', 30);
+        if (!in_array($period, [7, 30], true)) {
+            $period = 30;
+        }
+
+        $timezone = config('app.timezone', 'Asia/Seoul');
+        $now = Carbon::now($timezone);
+        $endAt = $now->copy()->endOfDay();
+        $startAt = $endAt->copy()->subDays($period - 1)->startOfDay();
+
+        // 이 페이지의 예약 지표는 선택 기간에 시작하는 예약을 기준으로 계산한다.
+        $reservations = Reservation::query()
+            ->with(['room:id,name', 'users:id'])
+            ->whereBetween('start_at', [$startAt, $endAt])
+            ->orderBy('start_at')
+            ->get();
+
+        $confirmedReservations = $reservations
+            ->where('status', 'confirmed')
+            ->values();
+        $cancelledReservations = $reservations
+            ->where('status', 'cancelled')
+            ->values();
+
+        $totalMembers = User::query()->where('role', 'user')->count();
+        $newMembers = User::query()
+            ->where('role', 'user')
+            ->whereBetween('created_at', [$startAt, $endAt])
+            ->count();
+
+        $reservationCountsByUser = [];
+        $participantCount = 0;
+        foreach ($confirmedReservations as $reservation) {
+            foreach ($reservation->users as $reservationUser) {
+                $userId = (int) $reservationUser->id;
+                $reservationCountsByUser[$userId] = ($reservationCountsByUser[$userId] ?? 0) + 1;
+                $participantCount++;
+            }
+        }
+
+        $activeReservationUsers = count($reservationCountsByUser);
+        $repeatUsers = count(array_filter($reservationCountsByUser, function ($count) {
+            return $count >= 2;
+        }));
+
+        $totalReservations = $reservations->count();
+        $confirmedCount = $confirmedReservations->count();
+        $cancelledCount = $cancelledReservations->count();
+
+        $stats = [
+            'totalMembers' => $totalMembers,
+            'newMembers' => $newMembers,
+            'activeReservationUsers' => $activeReservationUsers,
+            'reservationUserRate' => $totalMembers > 0
+                ? round(($activeReservationUsers / $totalMembers) * 100, 1)
+                : 0,
+            'repeatUsers' => $repeatUsers,
+            'repeatUserRate' => $activeReservationUsers > 0
+                ? round(($repeatUsers / $activeReservationUsers) * 100, 1)
+                : 0,
+            'totalReservations' => $totalReservations,
+            'confirmedReservations' => $confirmedCount,
+            'cancelledReservations' => $cancelledCount,
+            'cancellationRate' => $totalReservations > 0
+                ? round(($cancelledCount / $totalReservations) * 100, 1)
+                : 0,
+            'averageParticipants' => $confirmedCount > 0
+                ? round($participantCount / $confirmedCount, 1)
+                : 0,
+            'userCancelled' => $cancelledReservations->where('cancelled_by', 'user')->count(),
+            'adminCancelled' => $cancelledReservations->where('cancelled_by', 'admin')->count(),
+        ];
+
+        // 7일은 일별, 30일은 주별로 묶어 읽기 쉬운 추이를 만든다.
+        $bucketDays = $period === 7 ? 1 : 7;
+        $trend = [];
+        $cursor = $startAt->copy();
+        while ($cursor->lte($endAt)) {
+            $bucketStart = $cursor->copy();
+            $bucketEnd = $cursor->copy()->addDays($bucketDays - 1)->endOfDay();
+            if ($bucketEnd->gt($endAt)) {
+                $bucketEnd = $endAt->copy();
+            }
+
+            $bucketReservations = $reservations->filter(function ($reservation) use ($bucketStart, $bucketEnd) {
+                return $reservation->start_at->gte($bucketStart)
+                    && $reservation->start_at->lte($bucketEnd);
+            });
+
+            $trend[] = [
+                'label' => $bucketDays === 1
+                    ? $bucketStart->format('m/d')
+                    : $bucketStart->format('m/d') . '–' . $bucketEnd->format('m/d'),
+                'confirmed' => $bucketReservations->where('status', 'confirmed')->count(),
+                'cancelled' => $bucketReservations->where('status', 'cancelled')->count(),
+                'total' => $bucketReservations->count(),
+            ];
+
+            $cursor->addDays($bucketDays)->startOfDay();
+        }
+
+        $hourCounts = array_fill(0, 24, 0);
+        foreach ($confirmedReservations as $reservation) {
+            $hourCounts[(int) $reservation->start_at->format('G')]++;
+        }
+        arsort($hourCounts);
+
+        $peakHours = [];
+        foreach ($hourCounts as $hour => $count) {
+            if ($count === 0 || count($peakHours) >= 5) {
+                continue;
+            }
+            $peakHours[] = [
+                'label' => sprintf('%02d:00–%02d:00', $hour, ($hour + 1) % 24),
+                'count' => $count,
+            ];
+        }
+
+        $roomCounts = [];
+        foreach ($confirmedReservations as $reservation) {
+            $roomName = $reservation->room ? $reservation->room->name : '삭제된 공간';
+            $roomKey = $reservation->room
+                ? 'room-' . $reservation->room->id
+                : 'deleted-' . $reservation->room_id;
+            if (!isset($roomCounts[$roomKey])) {
+                $roomCounts[$roomKey] = [
+                    'name' => $roomName,
+                    'reservations' => 0,
+                    'participants' => 0,
+                ];
+            }
+            $roomCounts[$roomKey]['reservations']++;
+            $roomCounts[$roomKey]['participants'] += $reservation->users->count();
+        }
+
+        usort($roomCounts, function ($a, $b) {
+            return $b['reservations'] <=> $a['reservations'];
+        });
+        $topRooms = array_slice($roomCounts, 0, 5);
+
+        $user = auth()->user();
+        $unreadCount = $user
+            ? $user->notifications()->whereNull('read_at')->count()
+            : 0;
+
+        return view('admin.statistics', compact(
+            'unreadCount',
+            'period',
+            'startAt',
+            'endAt',
+            'stats',
+            'trend',
+            'peakHours',
+            'topRooms'
+        ));
+    }
+
+    /**
      * 열쇠함 URL 등록 페이지 (전 기간 고정 1개)
      */
     public function urls()

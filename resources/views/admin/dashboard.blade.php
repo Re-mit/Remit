@@ -27,6 +27,10 @@
             <p class="text-sm text-gray-600">아래 기능을 선택하세요.</p>
 
             <div class="mt-4 grid gap-3">
+                <a href="{{ route('admin.statistics') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
+                    <div class="font-semibold text-gray-900">사용 통계</div>
+                    <div class="text-sm text-gray-600 mt-1">회원·예약 이용자·취소율·이용 추이 확인</div>
+                </a>
                 <a href="{{ route('admin.urls') }}" class="block rounded-xl border p-4 hover:bg-gray-50">
                     <div class="font-semibold text-gray-900">URL 등록</div>
                     <div class="text-sm text-gray-600 mt-1">열쇠함 URL</div>

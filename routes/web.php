@@ -101,6 +101,7 @@ Route::middleware(['auth', 'not_suspended'])->group(function () {
     // 관리자
     Route::prefix('admin')->group(function () {
         Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/statistics', [AdminController::class, 'statistics'])->name('admin.statistics');
 
         Route::get('/urls', [AdminController::class, 'urls'])->name('admin.urls');
         Route::post('/urls', [AdminController::class, 'updateLockboxUrls'])->name('admin.urls.update');
