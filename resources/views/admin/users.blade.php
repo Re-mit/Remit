@@ -183,11 +183,12 @@
                 @csrf
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">허용 이메일</label>
-                    <input name="email" class="w-full rounded-lg border px-3 py-2" placeholder="example@gachon.ac.kr" required />
+                    <textarea name="emails" rows="5" class="w-full rounded-lg border px-3 py-2" placeholder="한 줄에 하나씩 또는 쉼표로 구분&#10;example1@gachon.ac.kr&#10;example2@gachon.ac.kr" required></textarea>
+                    <p class="text-xs text-gray-500 mt-1">여러 개를 붙여넣어 한 번에 등록할 수 있습니다.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">메모(선택)</label>
-                    <input name="memo" class="w-full rounded-lg border px-3 py-2" placeholder="예: 2026학번 대표자" />
+                    <input name="memo" class="w-full rounded-lg border px-3 py-2" placeholder="예: 2026학번 대표자 (일괄 등록 시 전체에 동일하게 적용)" />
                 </div>
                 <button type="submit" class="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold">
                     추가/수정
