@@ -503,22 +503,46 @@ class AdminController extends Controller
         $this->authorizeAdmin();
 
         $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
+            'emails' => ['required', 'string'],
             'memo' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $email = AllowedEmail::normalize($validated['email']);
+        // 줄바꿈/쉼표/공백으로 구분된 여러 이메일을 한 번에 등록
+        $rawEmails = array_unique(preg_split('/[\s,]+/', $validated['emails'], -1, PREG_SPLIT_NO_EMPTY));
 
-        if (!Str::endsWith($email, '@gachon.ac.kr')) {
-            return back()->withErrors(['error' => '가천대학교 이메일(@gachon.ac.kr)만 등록할 수 있습니다.']);
+        if (count($rawEmails) > 500) {
+            return back()->withInput()->withErrors(['error' => '한 번에 최대 500개까지 등록할 수 있습니다.']);
         }
 
-        AllowedEmail::updateOrCreate(
-            ['email' => $email],
-            ['memo' => $validated['memo'] ?? null]
-        );
+        $added = 0;
+        $invalid = [];
 
-        return back()->with('success', '허용 이메일이 등록되었습니다.');
+        foreach ($rawEmails as $raw) {
+            $email = AllowedEmail::normalize($raw);
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !Str::endsWith($email, '@gachon.ac.kr')) {
+                $invalid[] = $raw;
+                continue;
+            }
+
+            AllowedEmail::updateOrCreate(
+                ['email' => $email],
+                ['memo' => $validated['memo'] ?? null]
+            );
+            $added++;
+        }
+
+        if ($added === 0) {
+            return back()->withInput()->withErrors(['error' => '등록 가능한 가천대학교 이메일(@gachon.ac.kr)이 없습니다.']);
+        }
+
+        $message = "{$added}개의 이메일이 등록되었습니다.";
+        if (!empty($invalid)) {
+            $shown = array_slice($invalid, 0, 10);
+            $message .= ' (형식 오류로 제외됨: ' . implode(', ', $shown) . (count($invalid) > 10 ? ' 외 ' . (count($invalid) - 10) . '개' : '') . ')';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroyAllowedEmail($id)
