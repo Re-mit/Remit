@@ -1,3 +1,13 @@
+# PHP2Shell(CVE-2026-109619) 임시 완화: 업로드 진행률 추적 비활성화.
+# mod_php 환경에서만 적용되도록 IfModule로 감싸 CGI/FPM 서버에서 500 에러가 나지 않게 한다.
+# CGI/FPM 환경은 같은 디렉터리의 .user.ini가 담당한다. PHP 패치 확인 후 제거 가능.
+<IfModule mod_php7.c>
+    php_flag session.upload_progress.enabled off
+</IfModule>
+<IfModule mod_php.c>
+    php_flag session.upload_progress.enabled off
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
