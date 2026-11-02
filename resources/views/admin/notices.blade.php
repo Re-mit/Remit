@@ -36,6 +36,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
                     <textarea name="message" rows="6" class="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200" required>{{ old('message') }}</textarea>
+                    <p class="mt-1 text-xs text-gray-500">링크는 [설문조사 하러가기](https://example.com) 형식으로 작성할 수 있습니다.</p>
                 </div>
 
                 <button type="submit" class="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors shadow-sm">
@@ -62,7 +63,7 @@
                                         {{-- PHP 7.4 호환을 위해 optional() 사용 --}}
                                         {{ optional($n->created_at)->format('Y-m-d H:i') }}
                                     </div>
-                                    <div class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words">{{ $n->message }}</div>
+                                    <div class="text-sm text-gray-700 mt-3 whitespace-pre-line break-words">{!! \App\Support\NoticeMessage::render($n->message) !!}</div>
                                 </div>
 
                                 <form method="POST" action="{{ route('admin.notices.destroy', $n->id) }}"

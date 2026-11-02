@@ -54,7 +54,7 @@
                                                 {{ optional($notification->created_at)->timezone('Asia/Seoul')->format('Y년 m월 d일 H:i') }}
                                             </p>
                                         </div>
-                                        <p class="text-xs text-gray-600">{!! nl2br(e($notification->message)) !!}</p>
+                                        <p class="text-xs text-gray-600 whitespace-pre-line break-words">{!! $notification->type === 'notice' ? \App\Support\NoticeMessage::render($notification->message) : e($notification->message) !!}</p>
                                     </div>
                                 </div>
                             </div>

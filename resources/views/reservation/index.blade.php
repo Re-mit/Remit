@@ -21,7 +21,7 @@
                         <div class="min-w-0">
                             <div class="text-xs font-semibold" :class="n.type === 'penalty' ? 'text-red-600' : 'text-blue-600'" x-text="n.type === 'penalty' ? '패널티 알림' : '공지 알림'"></div>
                             <div class="mt-1 text-sm font-bold text-gray-900 break-words" x-text="n.title"></div>
-                            <div class="mt-2 text-sm text-gray-700 whitespace-pre-line break-words" x-text="n.message"></div>
+                            <div class="mt-2 text-sm text-gray-700 whitespace-pre-line break-words"><template x-for="(part, index) in noticeMessageParts(n.message)" :key="index"><span><template x-if="part.href"><a :href="part.href" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline" x-text="part.text"></a></template><template x-if="!part.href"><span x-text="part.text"></span></template></span></template></div>
                             <div class="mt-3 flex items-center gap-3">
                                 <a href="{{ route('notification.index') }}" class="text-sm font-semibold text-blue-600 hover:underline">
                                     알림함 보기
@@ -360,6 +360,28 @@ function reservationApp() {
                 title: n.title || '공지',
                 message: n.message || '',
             }));
+        },
+        noticeMessageParts(message) {
+            const text = String(message || '');
+            const pattern = /\[([^\[\]\r\n]+)\]\((https?:\/\/[^\s<>()]+)\)/gi;
+            const parts = [];
+            let lastEnd = 0;
+            let match;
+
+            while ((match = pattern.exec(text)) !== null) {
+                try {
+                    const url = new URL(match[2]);
+                    if (url.protocol !== 'http:' && url.protocol !== 'https:') continue;
+                } catch (_) {
+                    continue;
+                }
+
+                if (match.index > lastEnd) parts.push({ text: text.slice(lastEnd, match.index) });
+                parts.push({ text: match[1], href: match[2] });
+                lastEnd = pattern.lastIndex;
+            }
+            if (lastEnd < text.length) parts.push({ text: text.slice(lastEnd) });
+            return parts;
         },
         csrfToken() {
             const el = document.querySelector('meta[name="csrf-token"]');
